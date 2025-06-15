@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X } from 'lucide-react';
+import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { useDropzone } from 'react-dropzone';
 
 interface QuestionCreateDialogProps {
   categories: Category[];
@@ -30,7 +31,28 @@ export function QuestionCreateDialog({
     difficultyLevel: 'kolay' as 'kolay' | 'orta' | 'zor',
     grade: 1,
     tags: [] as string[],
-    newTag: ''
+    newTag: '',
+    imageUrls: [] as string[]
+  });
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    maxFiles: 5,
+    onDrop: (acceptedFiles) => {
+      // Dosyaları URL'lere dönüştür (gerçek uygulamada bunlar sunucuya yüklenir)
+      acceptedFiles.forEach((file) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          setFormData(prev => ({
+            ...prev,
+            imageUrls: [...prev.imageUrls, reader.result as string]
+          }));
+        };
+        reader.readAsDataURL(file);
+      });
+    }
   });
 
   const handleAddTag = () => {
@@ -50,6 +72,13 @@ export function QuestionCreateDialog({
     }));
   };
 
+  const handleRemoveImage = (indexToRemove: number) => {
+    setFormData(prev => ({
+      ...prev,
+      imageUrls: prev.imageUrls.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
   const handleSave = () => {
     if (formData.title.trim() && formData.content.trim() && formData.categoryId) {
       const questionData = {
@@ -59,7 +88,7 @@ export function QuestionCreateDialog({
         difficultyLevel: formData.difficultyLevel,
         grade: formData.grade,
         tags: formData.tags,
-        imageUrls: [], // Add missing imageUrls property
+        imageUrls: formData.imageUrls,
         isFavorite: false,
         viewCount: 0
       };
@@ -73,7 +102,8 @@ export function QuestionCreateDialog({
         difficultyLevel: 'kolay',
         grade: 1,
         tags: [],
-        newTag: ''
+        newTag: '',
+        imageUrls: []
       });
       
       onOpenChange(false);
@@ -109,6 +139,58 @@ export function QuestionCreateDialog({
               placeholder="Soru içeriğini girin... (LaTeX için $ işareti kullanabilirsiniz)"
               rows={4}
             />
+          </div>
+
+          {/* Resim Yükleme */}
+          <div>
+            <Label>Soru Görselleri</Label>
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragActive 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <input {...getInputProps()} />
+              <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              {isDragActive ? (
+                <p className="text-blue-600">Resimleri buraya bırakın...</p>
+              ) : (
+                <div>
+                  <p className="text-gray-600 mb-1">
+                    Resimleri sürükleyip bırakın veya seçmek için tıklayın
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    PNG, JPG, GIF, WEBP formatları desteklenir (Maksimum 5 resim)
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Yüklenen Resimler */}
+            {formData.imageUrls.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                {formData.imageUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Yüklenen resim ${index + 1}`}
+                      className="w-full h-24 object-cover rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemoveImage(index)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Kategori, Zorluk, Sınıf */}

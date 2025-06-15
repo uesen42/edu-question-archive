@@ -89,6 +89,18 @@ class DatabaseManager {
     });
   }
 
+  async updateCategory(category: Category): Promise<void> {
+    const transaction = this.db!.transaction(['categories'], 'readwrite');
+    const store = transaction.objectStore('categories');
+    await store.put(category);
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    const transaction = this.db!.transaction(['categories'], 'readwrite');
+    const store = transaction.objectStore('categories');
+    await store.delete(id);
+  }
+
   // Test CRUD operations
   async addTest(test: Test): Promise<void> {
     const transaction = this.db!.transaction(['tests'], 'readwrite');
@@ -105,6 +117,18 @@ class DatabaseManager {
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+  }
+
+  async updateTest(test: Test): Promise<void> {
+    const transaction = this.db!.transaction(['tests'], 'readwrite');
+    const store = transaction.objectStore('tests');
+    await store.put(test);
+  }
+
+  async deleteTest(id: string): Promise<void> {
+    const transaction = this.db!.transaction(['tests'], 'readwrite');
+    const store = transaction.objectStore('tests');
+    await store.delete(id);
   }
 }
 

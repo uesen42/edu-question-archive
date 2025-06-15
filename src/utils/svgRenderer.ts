@@ -1,87 +1,10 @@
+
 import { Question } from '@/types';
-import katex from 'katex';
-import { EXPORT_WIDTH, EXPORT_HEIGHT, wrapText, simplifyMathContent } from './textMathUtils';
-
-// SVG text wrapping fonksiyonu
-const wrapTextOld = (text: string, maxWidth: number, fontSize: number = 14): string[] => {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = '';
-  
-  // Yaklaşık karakter genişliği (fontSize'a göre)
-  const charWidth = fontSize * 0.6;
-  const maxChars = Math.floor(maxWidth / charWidth);
-  
-  for (const word of words) {
-    if ((currentLine + word).length <= maxChars) {
-      currentLine += (currentLine ? ' ' : '') + word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  
-  return lines;
-};
-
-// LaTeX formüllerini basit metin olarak temizle
-const cleanLatexToText = (content: string): string => {
-  let cleaned = content || '';
-  
-  // HTML etiketlerini kaldır
-  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
-  
-  // LaTeX formüllerini basitleştir
-  cleaned = cleaned.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
-    // Basit matematiksel ifadeleri düz metne çevir
-    return formula
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-      .replace(/\\int/g, '∫')
-      .replace(/\\sum/g, '∑')
-      .replace(/\\prod/g, '∏')
-      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
-      .replace(/\\pi/g, 'π')
-      .replace(/\\alpha/g, 'α')
-      .replace(/\\beta/g, 'β')
-      .replace(/\\gamma/g, 'γ')
-      .replace(/\\delta/g, 'δ')
-      .replace(/\\theta/g, 'θ')
-      .replace(/\\lambda/g, 'λ')
-      .replace(/\\mu/g, 'μ')
-      .replace(/\\sigma/g, 'σ')
-      .replace(/\\phi/g, 'φ')
-      .replace(/\\omega/g, 'ω')
-      .replace(/\\_/g, '_')
-      .replace(/\\\^/g, '^')
-      .replace(/\{([^}]+)\}/g, '$1');
-  });
-  
-  // Tek $ işaretli formüller için aynı işlem
-  cleaned = cleaned.replace(/\$([^$]+)\$/g, (match, formula) => {
-    return formula
-      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
-      .replace(/\{([^}]+)\}/g, '$1');
-  });
-  
-  // \[ \] ve \( \) formüllerini de temizle
-  cleaned = cleaned.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
-    return formula.replace(/\{([^}]+)\}/g, '$1');
-  });
-  
-  cleaned = cleaned.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
-    return formula.replace(/\{([^}]+)\}/g, '$1');
-  });
-  
-  // Çoklu boşlukları tek boşluğa çevir
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-  
-  return cleaned;
-};
+import { EXPORT_WIDTH, EXPORT_HEIGHT, wrapText, convertLatexToPlainText } from './textMathUtils';
 
 // XML karakterlerini escape et
 const escapeXml = (text: string): string => {
+  if (!text) return "";
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -102,8 +25,8 @@ export const renderQuestionToSVG = (
     ? `${questionNumber}. ${question.title}`
     : `${questionNumber}. Soru`;
 
-  // İçeriği temizle
-  const cleanContent = cleanLatexToText(question.content);
+  // İçeriği düz metne çevir
+  const cleanContent = convertLatexToPlainText(question.content);
   
   // SVG içeriği oluştur
   let svgContent = `
@@ -139,7 +62,7 @@ export const renderQuestionToSVG = (
   if (showOptions && question.options && question.options.length > 0) {
     question.options.forEach((option, index) => {
       const optionLetter = String.fromCharCode(65 + index);
-      const cleanOption = cleanLatexToText(option);
+      const cleanOption = convertLatexToPlainText(option);
       const optionText = `${optionLetter}) ${cleanOption}`;
       
       const optionLines = wrapText(width - 2 * margin - 20, optionText, 12);

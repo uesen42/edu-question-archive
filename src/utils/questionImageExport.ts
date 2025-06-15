@@ -127,21 +127,22 @@ export const exportQuestionToImage = async (
       ? `${questionNumber}. ${question.title}`
       : `${questionNumber}. Soru`;
 
-    // LaTeX içeriğini render et
+    // LaTeX içeriğini daha güvenli şekilde render et
     const renderedContent = renderLatexInHtml(question.content);
 
     // HTML içeriği oluştur - tam 250px genişlik için
     let htmlContent = `
-      <div class="question-container" style="width: 250px; max-width: 250px; box-sizing: border-box;">
-        <div class="question-title" style="font-weight: bold; margin-bottom: 8px; word-wrap: break-word;">${questionTitle}</div>
-        <div class="question-content" style="margin-bottom: 12px; word-wrap: break-word;">${renderedContent}</div>
+      <div class="question-container" style="width: 250px; max-width: 250px; box-sizing: border-box; font-family: Arial, sans-serif;">
+        <div class="question-title" style="font-weight: bold; margin-bottom: 8px; word-wrap: break-word; font-size: 14px;">${questionTitle}</div>
+        <div class="question-content" style="margin-bottom: 12px; word-wrap: break-word; font-size: 12px; line-height: 1.4;">${renderedContent}</div>
     `;
 
     // Seçenekleri ekle
     if (showOptions && question.options && question.options.length > 0) {
       question.options.forEach((option, index) => {
         const renderedOption = renderLatexInHtml(option);
-        htmlContent += `<div class="question-option" style="margin-bottom: 4px; word-wrap: break-word;">${renderedOption}</div>`;
+        const optionLetter = String.fromCharCode(65 + index);
+        htmlContent += `<div class="question-option" style="margin-bottom: 4px; word-wrap: break-word; font-size: 11px;">${optionLetter}) ${renderedOption}</div>`;
       });
     }
 
@@ -152,7 +153,7 @@ export const exportQuestionToImage = async (
 
     // PNG olarak indir
     const link = document.createElement('a');
-    const fileName = `soru-${questionNumber}-${question.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-').substring(0, 30)}`;
+    const fileName = `soru-${questionNumber}-${(question.title || 'soru').replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-').substring(0, 30)}`;
     link.download = `${fileName}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     link.click();

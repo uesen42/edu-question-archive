@@ -50,49 +50,113 @@ export function wrapText(ctxOrWidth: CanvasRenderingContext2D | number, text: st
 
 export function simplifyMathContent(text: string): string {
   let simplified = text;
-  // Basit yaygın LaTeX komutlarını insan okunur biçime çevir
-  simplified = simplified.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "($1/$2)");
-  simplified = simplified.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
-  simplified = simplified.replace(/\\pi/g, "π");
-  simplified = simplified.replace(/\\alpha/g, "α");
-  simplified = simplified.replace(/\\beta/g, "β");
-  simplified = simplified.replace(/\\gamma/g, "γ");
-  simplified = simplified.replace(/\\theta/g, "θ");
-  simplified = simplified.replace(/\\sum/g, "∑");
-  simplified = simplified.replace(/\\int/g, "∫");
-  simplified = simplified.replace(/\\infty/g, "∞");
-  simplified = simplified.replace(/\\leq/g, "≤");
-  simplified = simplified.replace(/\\geq/g, "≥");
-  simplified = simplified.replace(/\\neq/g, "≠");
-  simplified = simplified.replace(/\\pm/g, "±");
-  simplified = simplified.replace(/\\times/g, "×");
-  simplified = simplified.replace(/\\div/g, "÷");
-  simplified = simplified.replace(/[{}]/g, "");
-  simplified = simplified.replace(/\\/g, "");
+  
+  // Daha güvenli LaTeX komut değişimi
+  simplified = simplified.replace(/\\frac\s*\{([^}]*)\}\s*\{([^}]*)\}/g, "($1)/($2)");
+  simplified = simplified.replace(/\\sqrt\s*\{([^}]*)\}/g, "√($1)");
+  simplified = simplified.replace(/\\pi\b/g, "π");
+  simplified = simplified.replace(/\\alpha\b/g, "α");
+  simplified = simplified.replace(/\\beta\b/g, "β");
+  simplified = simplified.replace(/\\gamma\b/g, "γ");  
+  simplified = simplified.replace(/\\theta\b/g, "θ");
+  simplified = simplified.replace(/\\sum\b/g, "∑");
+  simplified = simplified.replace(/\\int\b/g, "∫");
+  simplified = simplified.replace(/\\infty\b/g, "∞");
+  simplified = simplified.replace(/\\leq\b/g, "≤");
+  simplified = simplified.replace(/\\geq\b/g, "≥");
+  simplified = simplified.replace(/\\neq\b/g, "≠");
+  simplified = simplified.replace(/\\pm\b/g, "±");
+  simplified = simplified.replace(/\\times\b/g, "×");
+  simplified = simplified.replace(/\\div\b/g, "÷");
+  simplified = simplified.replace(/\\cdot\b/g, "·");
+  
+  // Gereksiz {} ve \ karakterlerini temizle
+  simplified = simplified.replace(/\{([^{}]*)\}/g, "$1");
+  simplified = simplified.replace(/\\\\/g, " ");
+  simplified = simplified.replace(/\s+/g, " ").trim();
+  
   return simplified;
 }
 
-// KaTeX içeriğini HTML içi olarak render et (fallback'li)
+// Daha güvenli LaTeX render fonksiyonu
 export function renderLatexInHtml(content: string): string {
+  if (!content) return "";
+  
   let rendered = content;
+  
   try {
-    rendered = rendered.replace(/\$\$([^$]+)\$\$/g, (match, latex) => {
+    // Önce block math ($$...$$) işle
+    rendered = rendered.replace(/\$\$([^$]*)\$\$/g, (match, latex) => {
+      if (!latex || latex.trim() === "") return match;
+      
       try {
-        return katex.renderToString(latex.trim(), { displayMode: true, throwOnError: false, trust: false, strict: "ignore", macros: {} });
-      } catch {
-        return `<div style="text-align: center; margin: 8px 0;">[${simplifyMathContent(latex.trim())}]</div>`;
+        const cleanLatex = latex.trim();
+        return katex.renderToString(cleanLatex, { 
+          displayMode: true, 
+          throwOnError: false,
+          trust: false,
+          strict: "ignore",
+          output: "html"
+        });
+      } catch (error) {
+        console.warn("Block LaTeX render hatası:", latex, error);
+        return `<div style="text-align: center; margin: 8px 0; padding: 4px; border: 1px solid #ddd; background: #f9f9f9;">${simplifyMathContent(latex)}</div>`;
       }
     });
-    rendered = rendered.replace(/\$([^$]+)\$/g, (match, latex) => {
+    
+    // Sonra inline math ($...$) işle
+    rendered = rendered.replace(/\$([^$]*)\$/g, (match, latex) => {
+      if (!latex || latex.trim() === "") return match;
+      
       try {
-        return katex.renderToString(latex.trim(), { displayMode: false, throwOnError: false, trust: false, strict: "ignore", macros: {} });
-      } catch {
-        return `[${simplifyMathContent(latex.trim())}]`;
+        const cleanLatex = latex.trim();
+        return katex.renderToString(cleanLatex, { 
+          displayMode: false, 
+          throwOnError: false,
+          trust: false,
+          strict: "ignore",
+          output: "html"
+        });
+      } catch (error) {
+        console.warn("Inline LaTeX render hatası:", latex, error);
+        return `<span style="padding: 2px 4px; background: #f0f0f0; border-radius: 3px;">${simplifyMathContent(latex)}</span>`;
       }
     });
-  } catch (error) {
-    rendered = content.replace(/\$\$([^$]+)\$\$/g, (match, latex) => `[${simplifyMathContent(latex)}]`);
-    rendered = rendered.replace(/\$([^$]+)\$/g, (match, latex) => `[${simplifyMathContent(latex)}]`);
+    
+  } catch (generalError) {
+    console.error("LaTeX render genel hatası:", generalError);
+    // Tüm LaTeX'i basit metne çevir
+    rendered = content.replace(/\$\$([^$]*)\$\$/g, (match, latex) => {
+      return `[${simplifyMathContent(latex)}]`;
+    });
+    rendered = rendered.replace(/\$([^$]*)\$/g, (match, latex) => {
+      return `[${simplifyMathContent(latex)}]`;
+    });
   }
+  
   return rendered;
+}
+
+// LaTeX'i düz metne çeviren güvenli fonksiyon
+export function convertLatexToPlainText(content: string): string {
+  if (!content) return "";
+  
+  let plainText = content;
+  
+  // HTML etiketlerini kaldır
+  plainText = plainText.replace(/<[^>]*>/g, " ");
+  
+  // LaTeX formüllerini basit metne çevir
+  plainText = plainText.replace(/\$\$([^$]*)\$\$/g, (match, formula) => {
+    return simplifyMathContent(formula || "");
+  });
+  
+  plainText = plainText.replace(/\$([^$]*)\$/g, (match, formula) => {
+    return simplifyMathContent(formula || "");
+  });
+  
+  // Çoklu boşlukları temizle
+  plainText = plainText.replace(/\s+/g, " ").trim();
+  
+  return plainText;
 }

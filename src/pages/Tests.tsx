@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -38,65 +39,110 @@ export default function Tests() {
     setIsTestViewOpen(true);
   };
 
+  // Math içeriğini temizlemek için yardımcı fonksiyon
+  const cleanMathContent = (content: string): string => {
+    return content
+      // LaTeX matematik ifadelerini temizle
+      .replace(/\$\$([^$]+)\$\$/g, '$1')
+      .replace(/\$([^$]+)\$/g, '$1')
+      // HTML etiketlerini kaldır
+      .replace(/<[^>]*>/g, '')
+      // Fazla boşlukları temizle
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
   const handleDownloadTest = (test: Test) => {
     const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
     
     try {
-      const pdf = new jsPDF();
+      const pdf = new jsPDF('p', 'mm', 'a4');
       let yPosition = 20;
+      const pageHeight = 297; // A4 yüksekliği
+      const margin = 20;
+      const lineHeight = 6;
       
       // PDF başlığı
-      pdf.setFontSize(18);
-      pdf.text(test.title, 20, yPosition);
+      pdf.setFontSize(16);
+      pdf.setFont(undefined, 'bold');
+      pdf.text(test.title, margin, yPosition);
       yPosition += 15;
       
       if (test.description) {
-        pdf.setFontSize(12);
-        pdf.text(test.description, 20, yPosition);
-        yPosition += 10;
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, 'normal');
+        const descLines = pdf.splitTextToSize(test.description, 170);
+        pdf.text(descLines, margin, yPosition);
+        yPosition += descLines.length * lineHeight + 5;
       }
       
       // Test bilgileri
       pdf.setFontSize(10);
-      pdf.text(`Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')}`, 20, yPosition);
-      pdf.text(`Soru Sayısı: ${testQuestions.length}`, 120, yPosition);
+      pdf.setFont(undefined, 'normal');
+      pdf.text(`Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')}`, margin, yPosition);
+      pdf.text(`Soru Sayısı: ${testQuestions.length}`, margin + 80, yPosition);
       yPosition += 15;
       
       // Sorular
-      pdf.setFontSize(12);
       testQuestions.forEach((question, index) => {
-        if (yPosition > 250) {
+        // Yeni sayfa kontrolü
+        if (yPosition > pageHeight - 50) {
           pdf.addPage();
-          yPosition = 20;
+          yPosition = margin;
         }
         
         const categoryName = categories.find(c => c.id === question.categoryId)?.name || 'Bilinmeyen';
         
-        // Soru başlığı
+        // Soru numarası ve başlığı
+        pdf.setFontSize(12);
         pdf.setFont(undefined, 'bold');
-        pdf.text(`${index + 1}. ${question.title}`, 20, yPosition);
-        yPosition += 8;
+        const questionTitle = `${index + 1}. ${question.title}`;
+        const titleLines = pdf.splitTextToSize(questionTitle, 170);
+        pdf.text(titleLines, margin, yPosition);
+        yPosition += titleLines.length * lineHeight + 3;
         
-        // Soru içeriği (LaTeX formülleri basit metin olarak)
+        // Soru içeriği - math içeriğini temizleyerek
         pdf.setFont(undefined, 'normal');
-        const cleanContent = question.content.replace(/\$\$?([^$]+)\$\$?/g, '$1');
-        const lines = pdf.splitTextToSize(cleanContent, 170);
-        pdf.text(lines, 20, yPosition);
-        yPosition += lines.length * 5 + 5;
+        const cleanContent = cleanMathContent(question.content);
+        const contentLines = pdf.splitTextToSize(cleanContent, 170);
+        pdf.text(contentLines, margin, yPosition);
+        yPosition += contentLines.length * lineHeight + 5;
         
         // Soru bilgileri
         pdf.setFontSize(9);
-        pdf.text(`Kategori: ${categoryName} | Zorluk: ${question.difficultyLevel} | Sınıf: ${question.grade}`, 20, yPosition);
+        pdf.setFont(undefined, 'italic');
+        const metaInfo = `Kategori: ${categoryName} | Zorluk: ${question.difficultyLevel} | Sınıf: ${question.grade}`;
+        pdf.text(metaInfo, margin, yPosition);
         yPosition += 10;
         
-        pdf.setFontSize(12);
+        // Etiketler varsa
+        if (question.tags.length > 0) {
+          const tagsText = `Etiketler: ${question.tags.join(', ')}`;
+          const tagsLines = pdf.splitTextToSize(tagsText, 170);
+          pdf.text(tagsLines, margin, yPosition);
+          yPosition += tagsLines.length * lineHeight + 5;
+        }
+        
+        yPosition += 5; // Sorular arası boşluk
       });
       
-      pdf.save(`test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`);
+      // Sayfa numaraları ekle
+      const pageCount = pdf.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.setFontSize(8);
+        pdf.setFont(undefined, 'normal');
+        pdf.text(`Sayfa ${i} / ${pageCount}`, pdf.internal.pageSize.width - 30, pdf.internal.pageSize.height - 10);
+      }
+      
+      // Dosyayı indir
+      const fileName = `test-${test.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-')}.pdf`;
+      pdf.save(fileName);
       
     } catch (error) {
       console.error('PDF oluşturulurken hata:', error);
-      // Fallback olarak JSON indir
+      
+      // Fallback olarak detaylı JSON indir
       const exportData = {
         test: {
           title: test.title,
@@ -106,13 +152,15 @@ export default function Tests() {
         },
         questions: testQuestions.map(q => ({
           title: q.title,
-          content: q.content,
+          content: cleanMathContent(q.content),
+          originalContent: q.content,
           categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
           difficultyLevel: q.difficultyLevel,
           grade: q.grade,
           tags: q.tags
         })),
-        exportDate: new Date().toISOString()
+        exportDate: new Date().toISOString(),
+        note: "PDF oluşturulamadı, yedek JSON dosyası oluşturuldu"
       };
 
       const blob = new Blob([JSON.stringify(exportData, null, 2)], {
@@ -122,7 +170,7 @@ export default function Tests() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `test-${test.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

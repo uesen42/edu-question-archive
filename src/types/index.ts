@@ -2,15 +2,19 @@
 export interface Question {
   id: string;
   title: string;
-  content: string; // HTML + KaTeX
-  options?: string[]; // Şıklar (opsiyonel)
+  content: string;
   imageUrls: string[];
   categoryId: string;
   difficultyLevel: 'kolay' | 'orta' | 'zor';
-  grade: number; // 1, 2, 3 vb.
+  grade: number;
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+  isFavorite?: boolean; // Yeni favori özelliği
+  viewCount?: number; // Görüntülenme sayısı
+  usageCount?: number; // Kullanım sayısı
+  options?: string[]; // Çoktan seçmeli soru seçenekleri
+  correctAnswer?: number; // Doğru cevap index'i
 }
 
 export interface Category {
@@ -19,6 +23,7 @@ export interface Category {
   description: string;
   color: string;
   createdAt: Date;
+  questionCount?: number; // Otomatik hesaplanan soru sayısı
 }
 
 export interface Test {
@@ -30,15 +35,34 @@ export interface Test {
   settings: {
     showAnswers: boolean;
     randomizeOrder: boolean;
-    showOptions: boolean; // Şıkları göster/gizle ayarı
+    showOptions: boolean;
     timeLimit?: number;
   };
+  completionCount?: number; // Tamamlanma sayısı
+  averageScore?: number; // Ortalama puan
 }
 
 export interface QuestionFilter {
   search?: string;
   categoryId?: string;
-  difficultyLevel?: string;
+  difficultyLevel?: 'kolay' | 'orta' | 'zor';
   grade?: number;
+  isFavorite?: boolean;
   tags?: string[];
+}
+
+export interface QuestionStats {
+  totalQuestions: number;
+  byDifficulty: Record<string, number>;
+  byGrade: Record<number, number>;
+  byCategory: Record<string, number>;
+  favoriteCount: number;
+  recentlyAdded: number;
+}
+
+export interface DashboardData {
+  stats: QuestionStats;
+  recentQuestions: Question[];
+  recentTests: Test[];
+  popularCategories: Category[];
 }

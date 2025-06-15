@@ -1,16 +1,33 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Plus, Search, BookOpen, Download, FileText, CheckSquare, Square } from 'lucide-react';
+import { 
+  Plus, 
+  Download, 
+  FileText, 
+  CheckSquare, 
+  Square, 
+  BookOpen,
+  Grid3X3,
+  List,
+  SortAsc,
+  SortDesc
+} from 'lucide-react';
 import { useQuestionStore } from '@/store/questionStore';
-import { QuestionCard } from '@/components/QuestionCard';
+import { EnhancedQuestionCard } from '@/components/EnhancedQuestionCard';
+import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { QuestionViewDialog } from '@/components/QuestionViewDialog';
 import { QuestionEditDialog } from '@/components/QuestionEditDialog';
 import { Question } from '@/types';
 import { exportAllQuestionsToImages, exportQuestionToImage } from '@/utils/questionImageExport';
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from '@/components/ui/select';
 
 export default function Questions() {
   const {
@@ -27,11 +44,6 @@ export default function Questions() {
     addTest
   } = useQuestionStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
-  const [selectedGrade, setSelectedGrade] = useState<string>('all');
-  
   // Dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -41,21 +53,43 @@ export default function Questions() {
   const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
+  // View states
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'difficulty' | 'grade'>('date');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   useEffect(() => {
     loadQuestions();
     loadCategories();
   }, [loadQuestions, loadCategories]);
 
-  useEffect(() => {
-    setFilter({
-      search: searchTerm,
-      categoryId: selectedCategory === 'all' ? undefined : selectedCategory,
-      difficultyLevel: selectedDifficulty === 'all' ? undefined : selectedDifficulty,
-      grade: selectedGrade === 'all' ? undefined : parseInt(selectedGrade),
-    });
-  }, [searchTerm, selectedCategory, selectedDifficulty, selectedGrade, setFilter]);
-
   const filteredQuestions = getFilteredQuestions();
+  
+  // Sıralama uygula
+  const sortedQuestions = [...filteredQuestions].sort((a, b) => {
+    let comparison = 0;
+    
+    switch (sortBy) {
+      case 'date':
+        comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        break;
+      case 'title':
+        comparison = a.title.localeCompare(b.title, 'tr');
+        break;
+      case 'difficulty':
+        const difficultyOrder = { 'kolay': 1, 'orta': 2, 'zor': 3 };
+        comparison = difficultyOrder[a.difficultyLevel] - difficultyOrder[b.difficultyLevel];
+        break;
+      case 'grade':
+        comparison = a.grade - b.grade;
+        break;
+    }
+    
+    return sortOrder === 'asc' ? comparison : -comparison;
+  });
+
+  // Tüm etiketleri topla
+  const availableTags = [...new Set(questions.flatMap(q => q.tags))];
 
   const handleEdit = (question: Question) => {
     setSelectedQuestion(question);
@@ -69,13 +103,38 @@ export default function Questions() {
   };
 
   const handleView = (question: Question) => {
+    // Görüntüleme sayısını artır
+    const updatedQuestion = { 
+      ...question, 
+      viewCount: (question.viewCount || 0) + 1 
+    };
+    updateQuestion(updatedQuestion);
+    
     setSelectedQuestion(question);
     setViewDialogOpen(true);
   };
 
-  const handleAddNew = () => {
-    // TODO: Open add question modal/dialog
-    console.log('Add new question');
+  const handleToggleFavorite = async (id: string) => {
+    const question = questions.find(q => q.id === id);
+    if (question) {
+      await updateQuestion({
+        ...question,
+        isFavorite: !question.isFavorite
+      });
+    }
+  };
+
+  const handleDuplicate = async (question: Question) => {
+    const duplicatedQuestion = {
+      ...question,
+      id: crypto.randomUUID(),
+      title: `${question.title} (Kopya)`,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    
+    // TODO: Implement addQuestion in store
+    console.log('Duplicate question:', duplicatedQuestion);
   };
 
   const handleSaveQuestion = async (question: Question) => {
@@ -83,7 +142,7 @@ export default function Questions() {
   };
 
   const handleExportAllImages = async () => {
-    await exportAllQuestionsToImages(filteredQuestions, categories, true);
+    await exportAllQuestionsToImages(sortedQuestions, categories, true);
   };
 
   const handleSelectQuestion = (questionId: string) => {
@@ -97,10 +156,10 @@ export default function Questions() {
   };
 
   const handleSelectAll = () => {
-    if (selectedQuestions.size === filteredQuestions.length) {
+    if (selectedQuestions.size === sortedQuestions.length) {
       setSelectedQuestions(new Set());
     } else {
-      setSelectedQuestions(new Set(filteredQuestions.map(q => q.id)));
+      setSelectedQuestions(new Set(sortedQuestions.map(q => q.id)));
     }
   };
 
@@ -110,18 +169,17 @@ export default function Questions() {
   };
 
   const handleExportSelectedImages = async () => {
-    const selectedQuestionsList = filteredQuestions.filter(q => selectedQuestions.has(q.id));
+    const selectedQuestionsList = sortedQuestions.filter(q => selectedQuestions.has(q.id));
     for (let i = 0; i < selectedQuestionsList.length; i++) {
       const question = selectedQuestionsList[i];
       const category = categories.find(cat => cat.id === question.categoryId);
       await exportQuestionToImage(question, i + 1, category, true);
-      // Tarayıcıyı bloke etmemek için kısa bir bekleme
       await new Promise(resolve => setTimeout(resolve, 500));
     }
   };
 
   const handleCreateTestFromSelected = async () => {
-    const selectedQuestionsList = filteredQuestions.filter(q => selectedQuestions.has(q.id));
+    const selectedQuestionsList = sortedQuestions.filter(q => selectedQuestions.has(q.id));
     if (selectedQuestionsList.length === 0) {
       alert('Lütfen en az bir soru seçin.');
       return;
@@ -156,14 +214,16 @@ export default function Questions() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Sorular</h1>
           <p className="text-gray-600 mt-2">
-            Toplam {questions.length} soru • Filtrelenen: {filteredQuestions.length}
+            Toplam {questions.length} soru • Filtrelenen: {sortedQuestions.length}
             {selectedQuestions.size > 0 && ` • Seçilen: ${selectedQuestions.size}`}
           </p>
         </div>
+        
         <div className="flex gap-2">
           {!isSelectionMode ? (
             <>
@@ -173,7 +233,7 @@ export default function Questions() {
                 className="flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
-                Tüm Soruları Resim Olarak İndir
+                Resim Olarak İndir
               </Button>
               <Button 
                 variant="outline"
@@ -181,9 +241,9 @@ export default function Questions() {
                 className="flex items-center gap-2"
               >
                 <CheckSquare className="h-4 w-4" />
-                Soru Seç
+                Toplu Seçim
               </Button>
-              <Button onClick={handleAddNew} className="flex items-center gap-2">
+              <Button className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Yeni Soru Ekle
               </Button>
@@ -195,12 +255,12 @@ export default function Questions() {
                 onClick={handleSelectAll}
                 className="flex items-center gap-2"
               >
-                {selectedQuestions.size === filteredQuestions.length ? (
+                {selectedQuestions.size === sortedQuestions.length ? (
                   <Square className="h-4 w-4" />
                 ) : (
                   <CheckSquare className="h-4 w-4" />
                 )}
-                {selectedQuestions.size === filteredQuestions.length ? 'Seçimi Kaldır' : 'Hepsini Seç'}
+                {selectedQuestions.size === sortedQuestions.length ? 'Seçimi Kaldır' : 'Hepsini Seç'}
               </Button>
               {selectedQuestions.size > 0 && (
                 <>
@@ -210,7 +270,7 @@ export default function Questions() {
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    Seçilenleri Resim Olarak İndir ({selectedQuestions.size})
+                    Resim İndir ({selectedQuestions.size})
                   </Button>
                   <Button 
                     variant="outline"
@@ -233,60 +293,62 @@ export default function Questions() {
         </div>
       </div>
 
-      {/* Arama ve Filtreler */}
-      <div className="bg-white p-6 rounded-lg border shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div className="lg:col-span-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Soru ara..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Gelişmiş Arama ve Filtreler */}
+      <AdvancedSearch
+        filter={filter}
+        categories={categories}
+        onFilterChange={setFilter}
+        availableTags={availableTags}
+      />
+
+      {/* Görünüm ve Sıralama Kontrolleri */}
+      <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Görünüm:</span>
+            <div className="flex border rounded-md">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-          
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder="Kategori seç" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm Kategoriler</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        </div>
 
-          <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
-            <SelectTrigger>
-              <SelectValue placeholder="Zorluk seç" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm Seviyeler</SelectItem>
-              <SelectItem value="kolay">Kolay</SelectItem>
-              <SelectItem value="orta">Orta</SelectItem>
-              <SelectItem value="zor">Zor</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={selectedGrade} onValueChange={setSelectedGrade}>
-            <SelectTrigger>
-              <SelectValue placeholder="Sınıf seç" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Tüm Sınıflar</SelectItem>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
-                <SelectItem key={grade} value={grade.toString()}>
-                  {grade}. Sınıf
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">Sırala:</span>
+            <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="date">Tarih</SelectItem>
+                <SelectItem value="title">Başlık</SelectItem>
+                <SelectItem value="difficulty">Zorluk</SelectItem>
+                <SelectItem value="grade">Sınıf</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            >
+              {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -296,7 +358,7 @@ export default function Questions() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="text-gray-600 mt-4">Sorular yükleniyor...</p>
         </div>
-      ) : filteredQuestions.length === 0 ? (
+      ) : sortedQuestions.length === 0 ? (
         <div className="text-center py-12">
           <BookOpen className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-4 text-lg font-medium text-gray-900">
@@ -308,33 +370,27 @@ export default function Questions() {
               : 'Farklı filtreler deneyerek arama yapabilirsiniz.'
             }
           </p>
-          {questions.length === 0 && (
-            <Button onClick={handleAddNew} className="mt-4">
-              İlk Soruyu Ekle
-            </Button>
-          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredQuestions.map((question) => (
-            <div key={question.id} className="relative">
-              {isSelectionMode && (
-                <div className="absolute top-2 left-2 z-10">
-                  <Checkbox
-                    checked={selectedQuestions.has(question.id)}
-                    onCheckedChange={() => handleSelectQuestion(question.id)}
-                    className="bg-white border-2"
-                  />
-                </div>
-              )}
-              <QuestionCard
-                question={question}
-                category={getCategoryById(question.categoryId)}
-                onEdit={handleEdit}
-                onDelete={handleDelete}
-                onView={handleView}
-              />
-            </div>
+        <div className={viewMode === 'grid' 
+          ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          : "space-y-4"
+        }>
+          {sortedQuestions.map((question) => (
+            <EnhancedQuestionCard
+              key={question.id}
+              question={question}
+              category={getCategoryById(question.categoryId)}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onView={handleView}
+              onToggleFavorite={handleToggleFavorite}
+              onExport={(q) => exportQuestionToImage(q, 1, getCategoryById(q.categoryId), true)}
+              onDuplicate={handleDuplicate}
+              isSelected={selectedQuestions.has(question.id)}
+              onSelect={isSelectionMode ? handleSelectQuestion : undefined}
+              compact={viewMode === 'list'}
+            />
           ))}
         </div>
       )}

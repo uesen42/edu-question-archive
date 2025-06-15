@@ -1,11 +1,29 @@
 
-import { useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, FileText, FolderOpen, TrendingUp } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { 
+  BookOpen, 
+  Users, 
+  FileText, 
+  TrendingUp, 
+  Plus, 
+  Star,
+  Clock,
+  Target,
+  Award,
+  BarChart3,
+  PieChart,
+  Activity
+} from 'lucide-react';
 import { useQuestionStore } from '@/store/questionStore';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell } from 'recharts';
 
 export default function Dashboard() {
   const { questions, categories, tests, loadQuestions, loadCategories, loadTests } = useQuestionStore();
+  const [recentActivity, setRecentActivity] = useState([]);
 
   useEffect(() => {
     loadQuestions();
@@ -13,41 +31,10 @@ export default function Dashboard() {
     loadTests();
   }, [loadQuestions, loadCategories, loadTests]);
 
-  const stats = [
-    {
-      title: 'Toplam Soru',
-      value: questions.length,
-      icon: BookOpen,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      title: 'Kategoriler',
-      value: categories.length,
-      icon: FolderOpen,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      title: 'Testler',
-      value: tests.length,
-      icon: FileText,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-    {
-      title: 'Bu Ay Eklenen',
-      value: questions.filter(q => {
-        const questionDate = new Date(q.createdAt);
-        const now = new Date();
-        return questionDate.getMonth() === now.getMonth() && 
-               questionDate.getFullYear() === now.getFullYear();
-      }).length,
-      icon: TrendingUp,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
-  ];
+  // İstatistik hesaplamaları
+  const totalQuestions = questions.length;
+  const totalCategories = categories.length;
+  const totalTests = tests.length;
 
   const difficultyStats = {
     kolay: questions.filter(q => q.difficultyLevel === 'kolay').length,
@@ -55,92 +42,161 @@ export default function Dashboard() {
     zor: questions.filter(q => q.difficultyLevel === 'zor').length,
   };
 
-  const gradeStats = [1, 2, 3, 4, 5].map(grade => ({
-    grade,
-    count: questions.filter(q => q.grade === grade).length,
+  const gradeStats = questions.reduce((acc, q) => {
+    acc[q.grade] = (acc[q.grade] || 0) + 1;
+    return acc;
+  }, {} as Record<number, number>);
+
+  const categoryStats = categories.map(cat => ({
+    name: cat.name,
+    count: questions.filter(q => q.categoryId === cat.id).length,
+    color: cat.color
   }));
 
+  const gradeChartData = Object.entries(gradeStats).map(([grade, count]) => ({
+    grade: `${grade}. Sınıf`,
+    count
+  }));
+
+  const difficultyChartData = [
+    { name: 'Kolay', value: difficultyStats.kolay, color: '#10B981' },
+    { name: 'Orta', value: difficultyStats.orta, color: '#F59E0B' },
+    { name: 'Zor', value: difficultyStats.zor, color: '#EF4444' },
+  ];
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Anasayfa</h1>
-        <p className="text-gray-600 mt-2">Soru bankası sistemine hoş geldiniz!</p>
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-2">Soru bankası yönetim sisteminize genel bakış</p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Rapor Oluştur
+          </Button>
+          <Button className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Yeni Soru Ekle
+          </Button>
+        </div>
       </div>
 
-      {/* İstatistik Kartları */}
+      {/* Ana İstatistikler */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.title}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                  <div className={`p-3 rounded-full ${stat.bgColor}`}>
-                    <Icon className={`h-6 w-6 ${stat.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Toplam Soru</CardTitle>
+            <BookOpen className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalQuestions}</div>
+            <p className="text-xs text-muted-foreground">
+              +12% geçen aydan
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Kategoriler</CardTitle>
+            <Users className="h-4 w-4 text-green-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalCategories}</div>
+            <p className="text-xs text-muted-foreground">
+              Aktif kategoriler
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Testler</CardTitle>
+            <FileText className="h-4 w-4 text-orange-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalTests}</div>
+            <p className="text-xs text-muted-foreground">
+              Oluşturulan testler
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Başarı Oranı</CardTitle>
+            <TrendingUp className="h-4 w-4 text-purple-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">87%</div>
+            <p className="text-xs text-muted-foreground">
+              Ortalama test başarısı
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Grafikler */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Zorluk Seviyesi Dağılımı */}
         <Card>
           <CardHeader>
-            <CardTitle>Zorluk Seviyesi Dağılımı</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Sınıf Dağılımı
+            </CardTitle>
+            <CardDescription>Sorular sınıflara göre dağılım</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {Object.entries(difficultyStats).map(([level, count]) => (
-                <div key={level} className="flex items-center justify-between">
-                  <span className="capitalize text-sm font-medium">{level}</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${
-                          level === 'kolay' ? 'bg-green-500' :
-                          level === 'orta' ? 'bg-yellow-500' : 'bg-red-500'
-                        }`}
-                        style={{ 
-                          width: questions.length > 0 ? `${(count / questions.length) * 100}%` : '0%' 
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium w-8 text-right">{count}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={gradeChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="grade" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="count" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Sınıf Seviyesi Dağılımı */}
         <Card>
           <CardHeader>
-            <CardTitle>Sınıf Seviyesi Dağılımı</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <PieChart className="h-5 w-5" />
+              Zorluk Dağılımı
+            </CardTitle>
+            <CardDescription>Sorular zorluk seviyesine göre</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {gradeStats.map(({ grade, count }) => (
-                <div key={grade} className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{grade}. Sınıf</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 bg-gray-200 rounded-full h-2">
-                      <div
-                        className="h-2 bg-blue-500 rounded-full"
-                        style={{ 
-                          width: questions.length > 0 ? `${(count / questions.length) * 100}%` : '0%' 
-                        }}
-                      />
-                    </div>
-                    <span className="text-sm font-medium w-8 text-right">{count}</span>
-                  </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <RechartsPieChart>
+                <Pie
+                  data={difficultyChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={120}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {difficultyChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </RechartsPieChart>
+            </ResponsiveContainer>
+            <div className="flex justify-center gap-4 mt-4">
+              {difficultyChartData.map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <span className="text-sm">{item.name}: {item.value}</span>
                 </div>
               ))}
             </div>
@@ -148,38 +204,106 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Son Eklenen Sorular */}
+      {/* Kategori İstatistikleri */}
       <Card>
         <CardHeader>
-          <CardTitle>Son Eklenen Sorular</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Kategori Performansı
+          </CardTitle>
+          <CardDescription>Her kategorideki soru sayısı ve yüzdesi</CardDescription>
         </CardHeader>
         <CardContent>
-          {questions.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">
-              Henüz hiç soru eklenmemiş. Sorular sayfasından yeni sorular ekleyebilirsiniz.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {questions
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                .slice(0, 5)
-                .map((question) => (
-                  <div key={question.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <h4 className="font-medium text-gray-900">{question.title}</h4>
-                      <p className="text-sm text-gray-600">
-                        {new Date(question.createdAt).toLocaleDateString('tr-TR')} - {question.difficultyLevel}
-                      </p>
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {question.grade}. Sınıf
-                    </div>
-                  </div>
-                ))}
-            </div>
-          )}
+          <div className="space-y-4">
+            {categoryStats.map((cat, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-4 h-4 rounded-full"
+                    style={{ backgroundColor: cat.color }}
+                  ></div>
+                  <span className="font-medium">{cat.name}</span>
+                </div>
+                <div className="flex items-center gap-3 min-w-0 flex-1 ml-4">
+                  <Progress 
+                    value={(cat.count / totalQuestions) * 100} 
+                    className="flex-1"
+                  />
+                  <span className="text-sm text-gray-600 min-w-fit">
+                    {cat.count} soru ({Math.round((cat.count / totalQuestions) * 100)}%)
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
+
+      {/* Son Aktiviteler */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Son Aktiviteler
+            </CardTitle>
+            <CardDescription>Sistemdeki son değişiklikler</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {questions.slice(0, 5).map((question, index) => (
+                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{question.title}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(question.createdAt).toLocaleDateString('tr-TR')}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {question.difficultyLevel}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Hedefler
+            </CardTitle>
+            <CardDescription>Bu ay için hedefleriniz</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Yeni sorular</span>
+                  <span>{totalQuestions}/100</span>
+                </div>
+                <Progress value={(totalQuestions / 100) * 100} />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Test oluşturma</span>
+                  <span>{totalTests}/20</span>
+                </div>
+                <Progress value={(totalTests / 20) * 100} />
+              </div>
+              <div>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Kategori çeşitliliği</span>
+                  <span>{totalCategories}/10</span>
+                </div>
+                <Progress value={(totalCategories / 10) * 100} />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

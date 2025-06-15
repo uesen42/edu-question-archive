@@ -1,4 +1,3 @@
-
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Question, Category } from '@/types';
@@ -18,8 +17,9 @@ const htmlToCanvas = async (htmlContent: string, width: number = 250, height: nu
     const scale = window.devicePixelRatio || 2;
     canvas.width = width * scale;
     canvas.height = height * scale;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // reset any existing transforms
     ctx.scale(scale, scale);
 
     // Beyaz arka plan
@@ -32,7 +32,7 @@ const htmlToCanvas = async (htmlContent: string, width: number = 250, height: nu
     tempDiv.style.position = 'absolute';
     tempDiv.style.top = '-9999px';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '250px'; // Tam 250px genişlik
+    tempDiv.style.width = '250px'; // **tam 250px**
     tempDiv.style.maxWidth = '250px';
     tempDiv.style.padding = '10px';
     tempDiv.style.fontFamily = 'Arial, sans-serif';
@@ -44,10 +44,8 @@ const htmlToCanvas = async (htmlContent: string, width: number = 250, height: nu
 
     document.body.appendChild(tempDiv);
 
-    // DOM'da render olduktan sonra canvas'a çiz
     setTimeout(() => {
       try {
-        // HTML2Canvas benzeri manuel rendering
         drawHtmlToCanvas(ctx, tempDiv, width, height);
         document.body.removeChild(tempDiv);
         resolve(canvas);
@@ -62,9 +60,10 @@ const htmlToCanvas = async (htmlContent: string, width: number = 250, height: nu
 // HTML elementini canvas'a çizme fonksiyonu
 const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, maxWidth: number, maxHeight: number) => {
   let currentY = 20;
-  const margin = 10;
+  const marginLeft = 10;
+  const marginRight = 10;
   const lineHeight = 16;
-  const contentWidth = 230; // 250px - 20px margin (left + right)
+  const contentWidth = maxWidth - marginLeft - marginRight; // **tam 250px'den marginler çıkarıldı**
 
   // Başlık
   const titleElements = element.querySelectorAll('.question-title');
@@ -74,7 +73,7 @@ const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, m
     const title = titleEl.textContent || '';
     const titleLines = wrapText(ctx, title, contentWidth);
     titleLines.forEach(line => {
-      ctx.fillText(line, margin, currentY);
+      ctx.fillText(line, marginLeft, currentY);
       currentY += lineHeight + 2;
     });
     currentY += 8;
@@ -85,23 +84,19 @@ const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, m
   contentElements.forEach((contentEl) => {
     ctx.font = '11px Arial';
     ctx.fillStyle = '#333';
-    
-    // Matematik ifadeleri var mı kontrol et
     const mathElements = contentEl.querySelectorAll('.katex');
     if (mathElements.length > 0) {
-      // LaTeX içeriğini sadeleştir
       const simplifiedText = simplifyMathContent(contentEl.textContent || '');
       const lines = wrapText(ctx, simplifiedText, contentWidth);
       lines.forEach(line => {
-        ctx.fillText(line, margin, currentY);
+        ctx.fillText(line, marginLeft, currentY);
         currentY += lineHeight;
       });
     } else {
-      // Normal metin
       const text = contentEl.textContent || '';
       const lines = wrapText(ctx, text, contentWidth);
       lines.forEach(line => {
-        ctx.fillText(line, margin, currentY);
+        ctx.fillText(line, marginLeft, currentY);
         currentY += lineHeight;
       });
     }
@@ -118,7 +113,7 @@ const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, m
     const text = `${optionLetter}) ${optionText}`;
     const lines = wrapText(ctx, text, contentWidth - 10);
     lines.forEach((line, lineIndex) => {
-      const x = lineIndex === 0 ? margin : margin + 10;
+      const x = lineIndex === 0 ? marginLeft : marginLeft + 10;
       ctx.fillText(line, x, currentY);
       currentY += 15;
     });

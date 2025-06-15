@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { Question, Category, Test, QuestionFilter } from '@/types';
 import { db } from '@/lib/database';
@@ -19,6 +18,7 @@ interface QuestionStore {
   updateQuestion: (question: Question) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
+  addTest: (testData: Omit<Test, 'id' | 'createdAt'>) => Promise<void>;
   addSampleQuestions: () => Promise<void>;
   setFilter: (filter: QuestionFilter) => void;
   getFilteredQuestions: () => Question[];
@@ -140,6 +140,21 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
       set(state => ({ categories: [...state.categories, category] }));
     } catch (error) {
       console.error('Failed to add category:', error);
+    }
+  },
+
+  addTest: async (testData: Omit<Test, 'id' | 'createdAt'>) => {
+    const test: Test = {
+      ...testData,
+      id: crypto.randomUUID(),
+      createdAt: new Date(),
+    };
+    
+    try {
+      await db.addTest(test);
+      set(state => ({ tests: [...state.tests, test] }));
+    } catch (error) {
+      console.error('Failed to add test:', error);
     }
   },
 

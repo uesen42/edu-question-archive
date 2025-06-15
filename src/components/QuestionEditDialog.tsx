@@ -29,7 +29,7 @@ export function QuestionEditDialog({
     title: '',
     content: '',
     categoryId: '',
-    difficultyLevel: 'kolay' as const,
+    difficultyLevel: 'kolay' as 'kolay' | 'orta' | 'zor',
     grade: 1,
     tags: [] as string[],
     newTag: ''
@@ -141,7 +141,9 @@ export function QuestionEditDialog({
               <Label>Zorluk Seviyesi</Label>
               <Select 
                 value={formData.difficultyLevel} 
-                onValueChange={(value: 'kolay' | 'orta' | 'zor') => setFormData(prev => ({ ...prev, difficultyLevel: value }))}
+                onValueChange={(value: 'kolay' | 'orta' | 'zor') => 
+                  setFormData(prev => ({ ...prev, difficultyLevel: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />

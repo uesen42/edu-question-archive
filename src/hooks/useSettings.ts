@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuestionStore } from '@/store/questionStore';
 
 interface SettingsState {
   darkMode: boolean;
@@ -23,6 +24,7 @@ const defaultSettings: SettingsState = {
 export function useSettings() {
   const [settings, setSettings] = useState<SettingsState>(defaultSettings);
   const { toast } = useToast();
+  const { questions, categories, tests } = useQuestionStore();
 
   useEffect(() => {
     const savedSettings = localStorage.getItem('app-settings');
@@ -52,10 +54,10 @@ export function useSettings() {
   const exportData = () => {
     try {
       const data = {
-        questions: localStorage.getItem('questions') || '[]',
-        categories: localStorage.getItem('categories') || '[]',
-        tests: localStorage.getItem('tests') || '[]',
-        settings: localStorage.getItem('app-settings') || '{}',
+        questions: JSON.stringify(questions),
+        categories: JSON.stringify(categories),
+        tests: JSON.stringify(tests),
+        settings: JSON.stringify(settings),
       };
       
       const blob = new Blob([JSON.stringify(data, null, 2)], {

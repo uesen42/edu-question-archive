@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +45,6 @@ export function TestSimulationDialog({
   useEffect(() => {
     if (step === "solve" && timeLimit) {
       setTimeLeft(timeLimit);
-      // Temizle
       if (timerRef.current) clearInterval(timerRef.current);
       timerRef.current = setInterval(() => {
         setTimeLeft(t => {
@@ -92,7 +90,11 @@ export function TestSimulationDialog({
   let wrongCount = 0;
   if (step === "result") {
     correctCount = testQuestions.reduce((acc, q) => {
-      if (q.options && typeof q.correctAnswer === "number" && answers[q.id] === q.correctAnswer) {
+      if (
+        q.options &&
+        typeof q.correctAnswer === "number" &&
+        answers[q.id] === q.correctAnswer
+      ) {
         return acc + 1;
       }
       return acc;
@@ -124,7 +126,9 @@ export function TestSimulationDialog({
 
             <div>
               <span className="font-bold">{currentIdx + 1}. Soru</span>
-              <Badge variant="secondary" className="ml-3">{(categories.find(cat => cat.id === currentQuestion.categoryId)?.name) || "Kategori yok"}</Badge>
+              <Badge variant="secondary" className="ml-3">
+                {categories.find(cat => cat.id === currentQuestion.categoryId)?.name || "Kategori yok"}
+              </Badge>
             </div>
             <div className="bg-gray-50 p-3 rounded">
               <MathRenderer content={currentQuestion.content} />
@@ -139,9 +143,13 @@ export function TestSimulationDialog({
                     onClick={() => {
                       handleOptionSelect(currentQuestion.id, idx);
                     }}
-                    disabled={currentQuestion.id in answers || step === "result" || (typeof timeLeft === "number" && timeLeft <= 0)}
+                    disabled={
+                      currentQuestion.id in answers ||
+                      step === "result" ||
+                      (typeof timeLeft === "number" && timeLeft <= 0)
+                    }
                   >
-                    <span className="mr-3">{String.fromCharCode(65+idx)}</span>
+                    <span className="mr-3">{String.fromCharCode(65 + idx)}</span>
                     {opt}
                   </Button>
                 ))}
@@ -169,7 +177,7 @@ export function TestSimulationDialog({
               </div>
             )}
           </div>
-        ) : (
+        ) : step === "result" ? (
           <div className="space-y-3">
             <div className="mb-3">
               <div className="text-lg font-bold">Test Sonucu</div>
@@ -183,11 +191,14 @@ export function TestSimulationDialog({
               <ul className="text-sm space-y-1">
                 {testQuestions.map((q, i) => (
                   <li key={q.id} className="flex items-start gap-2">
-                    <span>{i+1}.</span>
+                    <span>{i + 1}.</span>
                     <span>{q.title}</span>
                     {typeof q.correctAnswer === "number" && (
-                      <Badge variant={answers[q.id] === q.correctAnswer ? "secondary" : "destructive"} className="ml-2">
-                        {answers[q.id] === q.correctAnswer ? "Doğru" : "Yanlış"} 
+                      <Badge
+                        variant={answers[q.id] === q.correctAnswer ? "secondary" : "destructive"}
+                        className="ml-2"
+                      >
+                        {answers[q.id] === q.correctAnswer ? "Doğru" : "Yanlış"}
                       </Badge>
                     )}
                   </li>
@@ -199,9 +210,8 @@ export function TestSimulationDialog({
               <Button onClick={() => onOpenChange(false)}>Kapat</Button>
             </div>
           </div>
-        )}
+        ) : null}
       </DialogContent>
     </Dialog>
   );
 }
-

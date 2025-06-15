@@ -18,7 +18,11 @@ interface QuestionStore {
   updateQuestion: (question: Question) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
+  updateCategory: (category: Category) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
   addTest: (testData: Omit<Test, 'id' | 'createdAt'>) => Promise<void>;
+  updateTest: (test: Test) => Promise<void>;
+  deleteTest: (id: string) => Promise<void>;
   addSampleQuestions: () => Promise<void>;
   setFilter: (filter: QuestionFilter) => void;
   getFilteredQuestions: () => Question[];
@@ -143,6 +147,28 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
     }
   },
 
+  updateCategory: async (category) => {
+    try {
+      await db.updateCategory(category);
+      set(state => ({
+        categories: state.categories.map(c => c.id === category.id ? category : c)
+      }));
+    } catch (error) {
+      console.error('Failed to update category:', error);
+    }
+  },
+
+  deleteCategory: async (id) => {
+    try {
+      await db.deleteCategory(id);
+      set(state => ({
+        categories: state.categories.filter(c => c.id !== id)
+      }));
+    } catch (error) {
+      console.error('Failed to delete category:', error);
+    }
+  },
+
   addTest: async (testData: Omit<Test, 'id' | 'createdAt'>) => {
     const test: Test = {
       ...testData,
@@ -155,6 +181,28 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
       set(state => ({ tests: [...state.tests, test] }));
     } catch (error) {
       console.error('Failed to add test:', error);
+    }
+  },
+
+  updateTest: async (test) => {
+    try {
+      await db.updateTest(test);
+      set(state => ({
+        tests: state.tests.map(t => t.id === test.id ? test : t)
+      }));
+    } catch (error) {
+      console.error('Failed to update test:', error);
+    }
+  },
+
+  deleteTest: async (id) => {
+    try {
+      await db.deleteTest(id);
+      set(state => ({
+        tests: state.tests.filter(t => t.id !== id)
+      }));
+    } catch (error) {
+      console.error('Failed to delete test:', error);
     }
   },
 

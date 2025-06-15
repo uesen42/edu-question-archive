@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -19,6 +18,7 @@ import { EnhancedQuestionCard } from '@/components/EnhancedQuestionCard';
 import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { QuestionViewDialog } from '@/components/QuestionViewDialog';
 import { QuestionEditDialog } from '@/components/QuestionEditDialog';
+import { QuestionCreateDialog } from '@/components/QuestionCreateDialog';
 import { Question } from '@/types';
 import { exportAllQuestionsToImages, exportQuestionToImage } from '@/utils/questionImageExport';
 import { 
@@ -41,12 +41,14 @@ export default function Questions() {
     getFilteredQuestions,
     deleteQuestion,
     updateQuestion,
+    addQuestion,
     addTest
   } = useQuestionStore();
 
   // Dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
 
   // Selection states
@@ -208,6 +210,10 @@ export default function Questions() {
     setIsSelectionMode(false);
   };
 
+  const handleCreateQuestion = async (questionData: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>) => {
+    await addQuestion(questionData);
+  };
+
   const getCategoryById = (id: string) => {
     return categories.find(cat => cat.id === id);
   };
@@ -243,7 +249,10 @@ export default function Questions() {
                 <CheckSquare className="h-4 w-4" />
                 Toplu Seçim
               </Button>
-              <Button className="flex items-center gap-2">
+              <Button 
+                className="flex items-center gap-2"
+                onClick={() => setCreateDialogOpen(true)}
+              >
                 <Plus className="h-4 w-4" />
                 Yeni Soru Ekle
               </Button>
@@ -409,6 +418,13 @@ export default function Questions() {
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
         onSave={handleSaveQuestion}
+      />
+
+      <QuestionCreateDialog
+        categories={categories}
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onSave={handleCreateQuestion}
       />
     </div>
   );

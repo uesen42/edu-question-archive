@@ -1,4 +1,3 @@
-
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Question, Category } from '@/types';
@@ -133,8 +132,7 @@ const extractMathText = (element: Element): string => {
   const walker = document.createTreeWalker(
     element,
     NodeFilter.SHOW_TEXT,
-    null,
-    false
+    null
   );
   
   let node;

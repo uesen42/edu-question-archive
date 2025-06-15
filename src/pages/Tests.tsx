@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,11 +42,13 @@ import { EmptyTestsState } from '@/components/EmptyTestsState';
 import { useQuestionStore } from '@/store/questionStore';
 import { Test } from '@/types';
 import { exportTestToPDF } from '@/utils/pdfExport';
+import { TestSimulationDialog } from '@/components/TestSimulationDialog';
 
 export default function Tests() {
   const [isTestCreateOpen, setIsTestCreateOpen] = useState(false);
   const [isTestEditOpen, setIsTestEditOpen] = useState(false);
   const [isTestViewOpen, setIsTestViewOpen] = useState(false);
+  const [isTestSimOpen, setIsTestSimOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [deleteTest, setDeleteTest] = useState<Test | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,6 +92,11 @@ export default function Tests() {
   const handleViewTest = (test: Test) => {
     setSelectedTest(test);
     setIsTestViewOpen(true);
+  };
+
+  const handleSimulateTest = (test: Test) => {
+    setSelectedTest(test);
+    setIsTestSimOpen(true);
   };
 
   const handleDeleteTest = (test: Test) => {
@@ -345,6 +351,10 @@ export default function Tests() {
                           <Edit2 className="h-4 w-4 mr-2" />
                           Düzenle
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleSimulateTest(test)}>
+                          <Clock className="h-4 w-4 mr-2" />
+                          Testi Çöz
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDuplicateTest(test)}>
                           <Copy className="h-4 w-4 mr-2" />
                           Kopyala
@@ -466,6 +476,15 @@ export default function Tests() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Test Simülasyon/Önizleme Dialog */}
+      <TestSimulationDialog
+        open={isTestSimOpen}
+        onOpenChange={setIsTestSimOpen}
+        test={selectedTest}
+        questions={questions}
+        categories={categories}
+      />
     </div>
   );
 }

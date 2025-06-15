@@ -2,70 +2,82 @@
 import { Question } from '@/types';
 import katex from 'katex';
 
-// KaTeX ile LaTeX'i işler ve HTML çıktısı döner
-const renderLatexWithKatex = (content: string): string => {
-  let processed = content || '';
-
-  // Önce HTML etiketlerini kaldır (varsa)
-  processed = processed.replace(/<[^>]*>/g, ' ');
-
-  // LaTeX blok: $$ ... $$
-  processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
-    try {
-      return `<div class="katex-display">${katex.renderToString(formula.trim(), {
-        displayMode: true,
-        throwOnError: false,
-        strict: false,
-        output: 'html'
-      })}</div>`;
-    } catch (error) {
-      return `<div class="math-fallback">$$${formula}$$</div>`;
+// SVG text wrapping fonksiyonu
+const wrapText = (text: string, maxWidth: number, fontSize: number = 14): string[] => {
+  const words = text.split(' ');
+  const lines = [];
+  let currentLine = '';
+  
+  // Yaklaşık karakter genişliği (fontSize'a göre)
+  const charWidth = fontSize * 0.6;
+  const maxChars = Math.floor(maxWidth / charWidth);
+  
+  for (const word of words) {
+    if ((currentLine + word).length <= maxChars) {
+      currentLine += (currentLine ? ' ' : '') + word;
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
     }
-  });
+  }
+  if (currentLine) lines.push(currentLine);
+  
+  return lines;
+};
 
-  // LaTeX blok: \[ ... \]
-  processed = processed.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
-    try {
-      return `<div class="katex-display">${katex.renderToString(formula.trim(), {
-        displayMode: true,
-        throwOnError: false,
-        strict: false,
-        output: 'html'
-      })}</div>`;
-    } catch (error) {
-      return `<div class="math-fallback">\\[${formula}\\]</div>`;
-    }
+// LaTeX formüllerini basit metin olarak temizle
+const cleanLatexToText = (content: string): string => {
+  let cleaned = content || '';
+  
+  // HTML etiketlerini kaldır
+  cleaned = cleaned.replace(/<[^>]*>/g, ' ');
+  
+  // LaTeX formüllerini basitleştir
+  cleaned = cleaned.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+    // Basit matematiksel ifadeleri düz metne çevir
+    return formula
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+      .replace(/\\int/g, '∫')
+      .replace(/\\sum/g, '∑')
+      .replace(/\\prod/g, '∏')
+      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+      .replace(/\\pi/g, 'π')
+      .replace(/\\alpha/g, 'α')
+      .replace(/\\beta/g, 'β')
+      .replace(/\\gamma/g, 'γ')
+      .replace(/\\delta/g, 'δ')
+      .replace(/\\theta/g, 'θ')
+      .replace(/\\lambda/g, 'λ')
+      .replace(/\\mu/g, 'μ')
+      .replace(/\\sigma/g, 'σ')
+      .replace(/\\phi/g, 'φ')
+      .replace(/\\omega/g, 'ω')
+      .replace(/\\_/g, '_')
+      .replace(/\\\^/g, '^')
+      .replace(/\{([^}]+)\}/g, '$1');
   });
-
-  // Inline math $ ... $ (bloklar kadar geçerli) - dikkat: bloklardan sonra olmalı!
-  processed = processed.replace(/\$([^$]+)\$/g, (match, formula) => {
-    try {
-      return `<span class="katex-inline">${katex.renderToString(formula.trim(), {
-        displayMode: false,
-        throwOnError: false,
-        strict: false,
-        output: 'html'
-      })}</span>`;
-    } catch (error) {
-      return `<span class="math-fallback">$${formula}$</span>`;
-    }
+  
+  // Tek $ işaretli formüller için aynı işlem
+  cleaned = cleaned.replace(/\$([^$]+)\$/g, (match, formula) => {
+    return formula
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+      .replace(/\{([^}]+)\}/g, '$1');
   });
-
-  // Inline math \( ... \)
-  processed = processed.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
-    try {
-      return `<span class="katex-inline">${katex.renderToString(formula.trim(), {
-        displayMode: false,
-        throwOnError: false,
-        strict: false,
-        output: 'html'
-      })}</span>`;
-    } catch (error) {
-      return `<span class="math-fallback">\\(${formula}\\)</span>`;
-    }
+  
+  // \[ \] ve \( \) formüllerini de temizle
+  cleaned = cleaned.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
+    return formula.replace(/\{([^}]+)\}/g, '$1');
   });
-
-  return processed;
+  
+  cleaned = cleaned.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
+    return formula.replace(/\{([^}]+)\}/g, '$1');
+  });
+  
+  // Çoklu boşlukları tek boşluğa çevir
+  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  
+  return cleaned;
 };
 
 // XML karakterlerini escape et
@@ -78,30 +90,7 @@ const escapeXml = (text: string): string => {
     .replace(/'/g, '&#39;');
 };
 
-const katexFullCSS = `
-.katex { font: normal 1.21em KaTeX_Main, Times New Roman, serif; }
-.katex-display { margin: 1em 0; text-align: center; }
-.katex .mfrac > span { display: block; text-align: center; }
-.katex .mfrac > span + span { border-top: 1px solid; margin-top: 0.05em; padding-top: 0.05em; }
-.katex .accent-body { position: relative; }
-.katex .base { display: inline-block; }
-.katex .strut { display: inline-block; }
-.math-fallback { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
-.katex-inline { }
-.katex-html { display: inline; }
-.katex .mord { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mop { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mbin { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mrel { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mopen { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mclose { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .mpunct { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .minner { font-family: KaTeX_Main, Times New Roman, serif; }
-.katex .vlist { display: inline-block; }
-.katex .vlist > span { display: block; }
-`;
-
-// SVG içinde HTML içeriği render etmek için foreignObject kullan
+// Basit SVG text çıktısı oluştur
 export const renderQuestionToSVG = (
   question: Question, 
   questionNumber: number, 
@@ -109,55 +98,61 @@ export const renderQuestionToSVG = (
   width: number = 800,
   height: number = 600
 ): string => {
-  // Soru başlığı
   const questionTitle = question.title
     ? `${questionNumber}. ${question.title}`
     : `${questionNumber}. Soru`;
 
-  // Soru içeriği KaTeX ile LaTeX dönüştürülerek hazırlanıyor
-  const renderedContent = renderLatexWithKatex(question.content);
-
-  // HTML içeriği (tam xhtml, foreignObject uyumlu!)
-  let htmlContent = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #212121; width: 100%;">
-      <h3 style="font-size: 16px; font-weight: bold; margin: 0 0 15px 0; color: #1a1a1a;">
-        ${escapeXml(questionTitle)}
-      </h3>
-      <div style="font-size: 14px; margin-bottom: 20px; color: #333;">
-        ${renderedContent}
-      </div>
+  // İçeriği temizle
+  const cleanContent = cleanLatexToText(question.content);
+  
+  // SVG içeriği oluştur
+  let svgContent = `
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <style>
+          .title-text { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #1a1a1a; }
+          .content-text { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
+          .option-text { font-family: Arial, sans-serif; font-size: 12px; fill: #555; }
+        </style>
+      </defs>
+      <rect width="100%" height="100%" fill="white" stroke="#e0e0e0" stroke-width="1"/>
   `;
-
+  
+  let currentY = 30;
+  const margin = 20;
+  const lineHeight = 20;
+  
+  // Başlık
+  svgContent += `<text x="${margin}" y="${currentY}" class="title-text">${escapeXml(questionTitle)}</text>`;
+  currentY += 30;
+  
+  // İçerik - metni satırlara böl
+  const contentLines = wrapText(cleanContent, width - 2 * margin, 14);
+  contentLines.forEach((line) => {
+    svgContent += `<text x="${margin}" y="${currentY}" class="content-text">${escapeXml(line)}</text>`;
+    currentY += lineHeight;
+  });
+  
+  currentY += 10;
+  
+  // Seçenekler
   if (showOptions && question.options && question.options.length > 0) {
-    htmlContent += '<div style="margin-top: 20px;">';
     question.options.forEach((option, index) => {
       const optionLetter = String.fromCharCode(65 + index);
-      const renderedOption = renderLatexWithKatex(option);
-      htmlContent += `
-        <div style="margin: 8px 0; padding-left: 20px; font-size: 12px; color: #555;">
-          <strong>${optionLetter})</strong> ${renderedOption}
-        </div>
-      `;
+      const cleanOption = cleanLatexToText(option);
+      const optionText = `${optionLetter}) ${cleanOption}`;
+      
+      const optionLines = wrapText(optionText, width - 2 * margin - 20, 12);
+      optionLines.forEach((line, lineIndex) => {
+        const x = lineIndex === 0 ? margin + 20 : margin + 40;
+        svgContent += `<text x="${x}" y="${currentY}" class="option-text">${escapeXml(line)}</text>`;
+        currentY += 16;
+      });
+      currentY += 8;
     });
-    htmlContent += '</div>';
   }
-  htmlContent += '</div>';
-
-  // SVG çıktısı (tam xhtml foreignObject ile)
-  return `
-    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <foreignObject x="0" y="0" width="100%" height="100%">
-        <html xmlns="http://www.w3.org/1999/xhtml">
-          <head>
-            <style type="text/css"><![CDATA[
-              ${katexFullCSS}
-            ]]></style>
-          </head>
-          <body style="margin:0;padding:0;background:white;">
-            ${htmlContent}
-          </body>
-        </html>
-      </foreignObject>
-    </svg>
-  `;
+  
+  svgContent += '</svg>';
+  
+  return svgContent;
 };

@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, BookOpen } from 'lucide-react';
+import { Plus, Search, BookOpen, Download } from 'lucide-react';
 import { useQuestionStore } from '@/store/questionStore';
 import { QuestionCard } from '@/components/QuestionCard';
 import { QuestionViewDialog } from '@/components/QuestionViewDialog';
 import { QuestionEditDialog } from '@/components/QuestionEditDialog';
 import { Question } from '@/types';
+import { exportAllQuestionsToImages } from '@/utils/questionImageExport';
 
 export default function Questions() {
   const {
@@ -74,6 +75,10 @@ export default function Questions() {
     await updateQuestion(question);
   };
 
+  const handleExportAllImages = async () => {
+    await exportAllQuestionsToImages(filteredQuestions, categories, true);
+  };
+
   const getCategoryById = (id: string) => {
     return categories.find(cat => cat.id === id);
   };
@@ -87,10 +92,20 @@ export default function Questions() {
             Toplam {questions.length} soru • Filtrelenen: {filteredQuestions.length}
           </p>
         </div>
-        <Button onClick={handleAddNew} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Yeni Soru Ekle
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline"
+            onClick={handleExportAllImages}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Tüm Soruları Resim Olarak İndir
+          </Button>
+          <Button onClick={handleAddNew} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Yeni Soru Ekle
+          </Button>
+        </div>
       </div>
 
       {/* Arama ve Filtreler */}

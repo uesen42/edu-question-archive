@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,12 +38,40 @@ export default function Tests() {
     setIsTestViewOpen(true);
   };
 
-  // Math içeriğini temizlemek için yardımcı fonksiyon
-  const cleanMathContent = (content: string): string => {
+  // Math içeriğini daha iyi işlemek için geliştirilmiş fonksiyon
+  const processMathContent = (content: string): string => {
     return content
-      // LaTeX matematik ifadelerini temizle
-      .replace(/\$\$([^$]+)\$\$/g, '$1')
-      .replace(/\$([^$]+)\$/g, '$1')
+      // LaTeX matematik ifadelerini daha okunabilir forma çevir
+      .replace(/\\\[([^\\]+)\\\]/g, '\n\n$1\n\n') // Display math
+      .replace(/\\\(([^\\]+)\\\)/g, '$1') // Inline math
+      .replace(/\$\$([^$]+)\$\$/g, '\n\n$1\n\n') // Display math with $$
+      .replace(/\$([^$]+)\$/g, '$1') // Inline math with $
+      // Yaygın LaTeX komutlarını değiştir
+      .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+      .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+      .replace(/\\times/g, '×')
+      .replace(/\\div/g, '÷')
+      .replace(/\\pm/g, '±')
+      .replace(/\\cdot/g, '·')
+      .replace(/\\pi/g, 'π')
+      .replace(/\\alpha/g, 'α')
+      .replace(/\\beta/g, 'β')
+      .replace(/\\gamma/g, 'γ')
+      .replace(/\\delta/g, 'δ')
+      .replace(/\\theta/g, 'θ')
+      .replace(/\\lambda/g, 'λ')
+      .replace(/\\mu/g, 'μ')
+      .replace(/\\sigma/g, 'σ')
+      .replace(/\\sum/g, '∑')
+      .replace(/\\int/g, '∫')
+      .replace(/\\lim/g, 'lim')
+      .replace(/\\infty/g, '∞')
+      .replace(/\\leq/g, '≤')
+      .replace(/\\geq/g, '≥')
+      .replace(/\\neq/g, '≠')
+      .replace(/\\approx/g, '≈')
+      .replace(/\^(\w+)/g, '⁽$1⁾') // Üst simge için basit çözüm
+      .replace(/\_(\w+)/g, '₍$1₎') // Alt simge için basit çözüm
       // HTML etiketlerini kaldır
       .replace(/<[^>]*>/g, '')
       // Fazla boşlukları temizle
@@ -57,73 +84,101 @@ export default function Tests() {
     
     try {
       const pdf = new jsPDF('p', 'mm', 'a4');
-      let yPosition = 20;
-      const pageHeight = 297; // A4 yüksekliği
-      const margin = 20;
-      const lineHeight = 6;
+      const pageWidth = pdf.internal.pageSize.width;
+      const pageHeight = pdf.internal.pageSize.height;
+      const margin = 15;
+      const columnWidth = (pageWidth - 3 * margin) / 2; // İki sütun için genişlik
+      const lineHeight = 5;
+      let leftColumnY = 30;
+      let rightColumnY = 30;
+      let currentColumn = 'left'; // 'left' veya 'right'
       
-      // PDF başlığı
-      pdf.setFontSize(16);
+      // PDF başlığı - ortalanmış
+      pdf.setFontSize(18);
       pdf.setFont(undefined, 'bold');
-      pdf.text(test.title, margin, yPosition);
-      yPosition += 15;
+      const titleWidth = pdf.getTextWidth(test.title);
+      pdf.text(test.title, (pageWidth - titleWidth) / 2, 20);
       
+      // Test açıklaması ve bilgileri - tek satırda
       if (test.description) {
-        pdf.setFontSize(11);
+        pdf.setFontSize(10);
         pdf.setFont(undefined, 'normal');
-        const descLines = pdf.splitTextToSize(test.description, 170);
-        pdf.text(descLines, margin, yPosition);
-        yPosition += descLines.length * lineHeight + 5;
+        const descWidth = pdf.getTextWidth(test.description);
+        pdf.text(test.description, (pageWidth - descWidth) / 2, 26);
       }
       
       // Test bilgileri
-      pdf.setFontSize(10);
+      pdf.setFontSize(9);
       pdf.setFont(undefined, 'normal');
-      pdf.text(`Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')}`, margin, yPosition);
-      pdf.text(`Soru Sayısı: ${testQuestions.length}`, margin + 80, yPosition);
-      yPosition += 15;
+      const testInfo = `Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')} | Soru Sayısı: ${testQuestions.length}`;
+      const infoWidth = pdf.getTextWidth(testInfo);
+      pdf.text(testInfo, (pageWidth - infoWidth) / 2, 32);
       
-      // Sorular
+      // Sütun ayırıcı çizgi
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(pageWidth / 2, 35, pageWidth / 2, pageHeight - 20);
+      
+      // Sorular - iki sütunlu düzen
       testQuestions.forEach((question, index) => {
-        // Yeni sayfa kontrolü
-        if (yPosition > pageHeight - 50) {
-          pdf.addPage();
-          yPosition = margin;
-        }
-        
         const categoryName = categories.find(c => c.id === question.categoryId)?.name || 'Bilinmeyen';
+        const xPosition = currentColumn === 'left' ? margin : pageWidth / 2 + margin / 2;
+        let yPosition = currentColumn === 'left' ? leftColumnY : rightColumnY;
+        
+        // Yeni sayfa kontrolü
+        if (yPosition > pageHeight - 60) {
+          pdf.addPage();
+          leftColumnY = 30;
+          rightColumnY = 30;
+          yPosition = 30;
+          currentColumn = 'left';
+          
+          // Yeni sayfada sütun ayırıcı çizgi
+          pdf.setDrawColor(200, 200, 200);
+          pdf.line(pageWidth / 2, 20, pageWidth / 2, pageHeight - 20);
+        }
         
         // Soru numarası ve başlığı
-        pdf.setFontSize(12);
+        pdf.setFontSize(11);
         pdf.setFont(undefined, 'bold');
         const questionTitle = `${index + 1}. ${question.title}`;
-        const titleLines = pdf.splitTextToSize(questionTitle, 170);
-        pdf.text(titleLines, margin, yPosition);
-        yPosition += titleLines.length * lineHeight + 3;
+        const titleLines = pdf.splitTextToSize(questionTitle, columnWidth - 5);
+        pdf.text(titleLines, xPosition, yPosition);
+        yPosition += titleLines.length * lineHeight + 2;
         
-        // Soru içeriği - math içeriğini temizleyerek
+        // Soru içeriği - matematik formüllerini işleyerek
+        pdf.setFontSize(10);
         pdf.setFont(undefined, 'normal');
-        const cleanContent = cleanMathContent(question.content);
-        const contentLines = pdf.splitTextToSize(cleanContent, 170);
-        pdf.text(contentLines, margin, yPosition);
-        yPosition += contentLines.length * lineHeight + 5;
+        const processedContent = processMathContent(question.content);
+        const contentLines = pdf.splitTextToSize(processedContent, columnWidth - 5);
+        pdf.text(contentLines, xPosition, yPosition);
+        yPosition += contentLines.length * lineHeight + 3;
         
-        // Soru bilgileri
-        pdf.setFontSize(9);
+        // Soru meta bilgileri
+        pdf.setFontSize(8);
         pdf.setFont(undefined, 'italic');
-        const metaInfo = `Kategori: ${categoryName} | Zorluk: ${question.difficultyLevel} | Sınıf: ${question.grade}`;
-        pdf.text(metaInfo, margin, yPosition);
-        yPosition += 10;
+        const metaInfo = `${categoryName} | ${question.difficultyLevel} | ${question.grade}. Sınıf`;
+        const metaLines = pdf.splitTextToSize(metaInfo, columnWidth - 5);
+        pdf.text(metaLines, xPosition, yPosition);
+        yPosition += metaLines.length * lineHeight + 2;
         
-        // Etiketler varsa
+        // Etiketler
         if (question.tags.length > 0) {
           const tagsText = `Etiketler: ${question.tags.join(', ')}`;
-          const tagsLines = pdf.splitTextToSize(tagsText, 170);
-          pdf.text(tagsLines, margin, yPosition);
-          yPosition += tagsLines.length * lineHeight + 5;
+          const tagsLines = pdf.splitTextToSize(tagsText, columnWidth - 5);
+          pdf.text(tagsLines, xPosition, yPosition);
+          yPosition += tagsLines.length * lineHeight + 2;
         }
         
-        yPosition += 5; // Sorular arası boşluk
+        yPosition += 8; // Sorular arası boşluk
+        
+        // Sütun değiştirme mantığı
+        if (currentColumn === 'left') {
+          leftColumnY = yPosition;
+          currentColumn = 'right';
+        } else {
+          rightColumnY = yPosition;
+          currentColumn = 'left';
+        }
       });
       
       // Sayfa numaraları ekle
@@ -132,7 +187,9 @@ export default function Tests() {
         pdf.setPage(i);
         pdf.setFontSize(8);
         pdf.setFont(undefined, 'normal');
-        pdf.text(`Sayfa ${i} / ${pageCount}`, pdf.internal.pageSize.width - 30, pdf.internal.pageSize.height - 10);
+        const pageText = `Sayfa ${i} / ${pageCount}`;
+        const pageTextWidth = pdf.getTextWidth(pageText);
+        pdf.text(pageText, (pageWidth - pageTextWidth) / 2, pageHeight - 10);
       }
       
       // Dosyayı indir
@@ -142,7 +199,7 @@ export default function Tests() {
     } catch (error) {
       console.error('PDF oluşturulurken hata:', error);
       
-      // Fallback olarak detaylı JSON indir
+      // Fallback JSON indirme
       const exportData = {
         test: {
           title: test.title,
@@ -152,7 +209,7 @@ export default function Tests() {
         },
         questions: testQuestions.map(q => ({
           title: q.title,
-          content: cleanMathContent(q.content),
+          content: processMathContent(q.content),
           originalContent: q.content,
           categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
           difficultyLevel: q.difficultyLevel,

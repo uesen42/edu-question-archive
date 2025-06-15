@@ -1,9 +1,10 @@
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { Question, Category } from '@/types';
+import { EXPORT_WIDTH, EXPORT_HEIGHT, wrapText, simplifyMathContent, renderLatexInHtml } from './textMathUtils';
 
 // HTML to Canvas dönüşümü için yardımcı fonksiyon
-const htmlToCanvas = async (htmlContent: string, width: number = 250, height: number = 400): Promise<HTMLCanvasElement> => {
+const htmlToCanvas = async (htmlContent: string, width: number = EXPORT_WIDTH, height: number = EXPORT_HEIGHT): Promise<HTMLCanvasElement> => {
   return new Promise((resolve, reject) => {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -32,15 +33,8 @@ const htmlToCanvas = async (htmlContent: string, width: number = 250, height: nu
     tempDiv.style.position = 'absolute';
     tempDiv.style.top = '-9999px';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.width = '250px'; // **tam 250px**
-    tempDiv.style.maxWidth = '250px';
-    tempDiv.style.padding = '10px';
-    tempDiv.style.fontFamily = 'Arial, sans-serif';
-    tempDiv.style.fontSize = '12px';
-    tempDiv.style.lineHeight = '1.4';
-    tempDiv.style.backgroundColor = 'white';
-    tempDiv.style.wordWrap = 'break-word';
-    tempDiv.style.overflow = 'hidden';
+    tempDiv.style.width = `${EXPORT_WIDTH}px`; // HER YERDE ARTIK 250px garantili olur
+    tempDiv.style.maxWidth = `${EXPORT_WIDTH}px`;
 
     document.body.appendChild(tempDiv);
 
@@ -63,7 +57,7 @@ const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, m
   const marginLeft = 10;
   const marginRight = 10;
   const lineHeight = 16;
-  const contentWidth = maxWidth - marginLeft - marginRight; // **tam 250px'den marginler çıkarıldı**
+  const contentWidth = maxWidth - marginLeft - marginRight;
 
   // Başlık
   const titleElements = element.querySelectorAll('.question-title');
@@ -121,113 +115,6 @@ const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, m
   });
 };
 
-// Matematik içeriğini sadeleştir
-const simplifyMathContent = (text: string): string => {
-  // LaTeX ifadelerini basit metne çevir
-  let simplified = text;
-  
-  // Çok yaygın LaTeX komutlarını çevir
-  simplified = simplified.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1/$2)');
-  simplified = simplified.replace(/\\sqrt\{([^}]+)\}/g, '√($1)');
-  simplified = simplified.replace(/\\pi/g, 'π');
-  simplified = simplified.replace(/\\alpha/g, 'α');
-  simplified = simplified.replace(/\\beta/g, 'β');
-  simplified = simplified.replace(/\\gamma/g, 'γ');
-  simplified = simplified.replace(/\\theta/g, 'θ');
-  simplified = simplified.replace(/\\sum/g, '∑');
-  simplified = simplified.replace(/\\int/g, '∫');
-  simplified = simplified.replace(/\\infty/g, '∞');
-  simplified = simplified.replace(/\\leq/g, '≤');
-  simplified = simplified.replace(/\\geq/g, '≥');
-  simplified = simplified.replace(/\\neq/g, '≠');
-  simplified = simplified.replace(/\\pm/g, '±');
-  simplified = simplified.replace(/\\times/g, '×');
-  simplified = simplified.replace(/\\div/g, '÷');
-  
-  // Süslü parantezleri temizle
-  simplified = simplified.replace(/[{}]/g, '');
-  
-  // Backslash'leri temizle
-  simplified = simplified.replace(/\\/g, '');
-  
-  return simplified;
-};
-
-// Metin sarma fonksiyonu - tam 250px için optimize edilmiş
-const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
-  const words = text.split(' ');
-  const lines = [];
-  let currentLine = '';
-
-  for (const word of words) {
-    const testLine = currentLine + (currentLine ? ' ' : '') + word;
-    const metrics = ctx.measureText(testLine);
-    
-    if (metrics.width > maxWidth && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = testLine;
-    }
-  }
-  
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-  
-  return lines;
-};
-
-// LaTeX içeriğini güvenli render et
-const renderLatexInHtml = (content: string): string => {
-  let rendered = content;
-  
-  try {
-    // Block math $$...$$ - daha güvenli ayarlarla
-    rendered = rendered.replace(/\$\$([^$]+)\$\$/g, (match, latex) => {
-      try {
-        return katex.renderToString(latex.trim(), { 
-          displayMode: true, 
-          throwOnError: false,
-          trust: false,
-          strict: 'ignore', // Türkçe karakterler için
-          macros: {}
-        });
-      } catch {
-        // LaTeX render edilemezse basit matematiksel gösterim
-        return `<div style="text-align: center; margin: 8px 0;">[${simplifyMathContent(latex.trim())}]</div>`;
-      }
-    });
-
-    // Inline math $...$
-    rendered = rendered.replace(/\$([^$]+)\$/g, (match, latex) => {
-      try {
-        return katex.renderToString(latex.trim(), { 
-          displayMode: false, 
-          throwOnError: false,
-          trust: false,
-          strict: 'ignore', // Türkçe karakterler için
-          macros: {}
-        });
-      } catch {
-        // LaTeX render edilemezse basit matematiksel gösterim
-        return `[${simplifyMathContent(latex.trim())}]`;
-      }
-    });
-  } catch (error) {
-    console.warn('LaTeX rendering hatası:', error);
-    // Tüm LaTeX ifadelerini basitleştir
-    rendered = content.replace(/\$\$([^$]+)\$\$/g, (match, latex) => {
-      return `[${simplifyMathContent(latex)}]`;
-    });
-    rendered = rendered.replace(/\$([^$]+)\$/g, (match, latex) => {
-      return `[${simplifyMathContent(latex)}]`;
-    });
-  }
-
-  return rendered;
-};
-
 // Ana export fonksiyonu
 export const exportQuestionToImage = async (
   question: Question,
@@ -261,7 +148,7 @@ export const exportQuestionToImage = async (
     htmlContent += '</div>';
 
     // Canvas'a çevir - tam 250px genişlik
-    const canvas = await htmlToCanvas(htmlContent, 250, 400);
+    const canvas = await htmlToCanvas(htmlContent, EXPORT_WIDTH, EXPORT_HEIGHT);
 
     // PNG olarak indir
     const link = document.createElement('a');

@@ -1,9 +1,9 @@
-
 import { Question } from '@/types';
 import katex from 'katex';
+import { EXPORT_WIDTH, EXPORT_HEIGHT, wrapText, simplifyMathContent } from './textMathUtils';
 
 // SVG text wrapping fonksiyonu
-const wrapText = (text: string, maxWidth: number, fontSize: number = 14): string[] => {
+const wrapTextOld = (text: string, maxWidth: number, fontSize: number = 14): string[] => {
   const words = text.split(' ');
   const lines = [];
   let currentLine = '';
@@ -95,8 +95,8 @@ export const renderQuestionToSVG = (
   question: Question, 
   questionNumber: number, 
   showOptions: boolean = false,
-  width: number = 800,
-  height: number = 600
+  width: number = EXPORT_WIDTH,
+  height: number = EXPORT_HEIGHT
 ): string => {
   const questionTitle = question.title
     ? `${questionNumber}. ${question.title}`

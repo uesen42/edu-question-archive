@@ -127,7 +127,7 @@ export const renderQuestionToSVG = (
   currentY += 30;
   
   // İçerik - metni satırlara böl
-  const contentLines = wrapText(cleanContent, width - 2 * margin, 14);
+  const contentLines = wrapText(width - 2 * margin, cleanContent, 14);
   contentLines.forEach((line) => {
     svgContent += `<text x="${margin}" y="${currentY}" class="content-text">${escapeXml(line)}</text>`;
     currentY += lineHeight;
@@ -142,7 +142,7 @@ export const renderQuestionToSVG = (
       const cleanOption = cleanLatexToText(option);
       const optionText = `${optionLetter}) ${cleanOption}`;
       
-      const optionLines = wrapText(optionText, width - 2 * margin - 20, 12);
+      const optionLines = wrapText(width - 2 * margin - 20, optionText, 12);
       optionLines.forEach((line, lineIndex) => {
         const x = lineIndex === 0 ? margin + 20 : margin + 40;
         svgContent += `<text x="${x}" y="${currentY}" class="option-text">${escapeXml(line)}</text>`;

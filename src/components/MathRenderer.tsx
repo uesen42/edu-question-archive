@@ -8,36 +8,33 @@ interface MathRendererProps {
 }
 
 export function MathRenderer({ content, className = '' }: MathRendererProps) {
-  // Simple regex to find LaTeX expressions
-  const renderWithMath = (text: string) => {
-    // Replace inline math $...$ with InlineMath component
-    const inlineMathRegex = /\$([^$]+)\$/g;
-    // Replace block math $$...$$ with BlockMath component
+  const renderWithMath = (text: string): (string | JSX.Element)[] => {
+    // First handle block math $$...$$ 
     const blockMathRegex = /\$\$([^$]+)\$\$/g;
-
-    let parts = [text];
+    let parts: (string | JSX.Element)[] = [text];
     
     // Handle block math first
-    parts = parts.flatMap(part => {
+    parts = parts.flatMap((part, partIndex) => {
       if (typeof part !== 'string') return [part];
       
       const blockMatches = part.split(blockMathRegex);
       return blockMatches.map((match, index) => {
         if (index % 2 === 1) {
-          return <BlockMath key={`block-${index}`} math={match} />;
+          return <BlockMath key={`block-${partIndex}-${index}`} math={match} />;
         }
         return match;
       });
     });
 
-    // Handle inline math
-    parts = parts.flatMap(part => {
+    // Handle inline math $...$
+    const inlineMathRegex = /\$([^$]+)\$/g;
+    parts = parts.flatMap((part, partIndex) => {
       if (typeof part !== 'string') return [part];
       
       const inlineMatches = part.split(inlineMathRegex);
       return inlineMatches.map((match, index) => {
         if (index % 2 === 1) {
-          return <InlineMath key={`inline-${index}`} math={match} />;
+          return <InlineMath key={`inline-${partIndex}-${index}`} math={match} />;
         }
         return match;
       });
@@ -46,13 +43,16 @@ export function MathRenderer({ content, className = '' }: MathRendererProps) {
     return parts;
   };
 
+  const renderedContent = renderWithMath(content);
+
   return (
-    <div 
-      className={className}
-      dangerouslySetInnerHTML={{ 
-        __html: content.replace(/\$\$([^$]+)\$\$/g, '<div class="block-math">$$1$</div>')
-                      .replace(/\$([^$]+)\$/g, '<span class="inline-math">$1</span>')
-      }}
-    />
+    <div className={className}>
+      {renderedContent.map((part, index) => {
+        if (typeof part === 'string') {
+          return <span key={`text-${index}`}>{part}</span>;
+        }
+        return part;
+      })}
+    </div>
   );
 }

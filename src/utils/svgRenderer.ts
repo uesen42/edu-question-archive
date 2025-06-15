@@ -2,7 +2,7 @@
 import { Question } from '@/types';
 import katex from 'katex';
 
-// KaTeX ile LaTeX'i HTML'e çeviren fonksiyon
+// KaTeX ile LaTeX'i render eden fonksiyon
 const renderLatexWithKatex = (content: string): string => {
   let processed = content;
   
@@ -13,56 +13,64 @@ const renderLatexWithKatex = (content: string): string => {
     // Display matematik ($$...$$)
     processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
       try {
-        return katex.renderToString(formula.trim(), {
+        const rendered = katex.renderToString(formula.trim(), {
           displayMode: true,
           throwOnError: false,
-          strict: false
+          strict: false,
+          output: 'html'
         });
+        return `<div class="katex-display">${rendered}</div>`;
       } catch (error) {
         console.warn('KaTeX display render error:', error);
-        return formula;
+        return `<div class="math-fallback">$$${formula}$$</div>`;
       }
     });
     
     // Inline matematik ($...$)
     processed = processed.replace(/\$([^$]+)\$/g, (match, formula) => {
       try {
-        return katex.renderToString(formula.trim(), {
+        const rendered = katex.renderToString(formula.trim(), {
           displayMode: false,
           throwOnError: false,
-          strict: false
+          strict: false,
+          output: 'html'
         });
+        return `<span class="katex-inline">${rendered}</span>`;
       } catch (error) {
         console.warn('KaTeX inline render error:', error);
-        return formula;
+        return `<span class="math-fallback">$${formula}$</span>`;
       }
     });
     
     // LaTeX blok matematik \[...\]
     processed = processed.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
       try {
-        return katex.renderToString(formula.trim(), {
+        const rendered = katex.renderToString(formula.trim(), {
           displayMode: true,
           throwOnError: false,
-          strict: false
+          strict: false,
+          output: 'html'
         });
+        return `<div class="katex-display">${rendered}</div>`;
       } catch (error) {
         console.warn('KaTeX block render error:', error);
-        return formula;
+        return `<div class="math-fallback">\\[${formula}\\]</div>`;
       }
     });
     
     // LaTeX inline matematik \(...\)
     processed = processed.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
       try {
-        return katex.renderToString(formula.trim(), {
+        const rendered = katex.renderToString(formula.trim(), {
           displayMode: false,
           throwOnError: false,
-          strict: false
+          strict: false,
+          output: 'html'
         });
+        return `<span class="katex-inline">${rendered}</span>`;
       } catch (error) {
         console.warn('KaTeX parenthesis render error:', error);
-        return formula;
+        return `<span class="math-fallback">\\(${formula}\\)</span>`;
       }
     });
     
@@ -70,41 +78,15 @@ const renderLatexWithKatex = (content: string): string => {
     console.error('KaTeX processing error:', error);
   }
   
-  // Fazla boşlukları temizle
-  processed = processed.replace(/\s+/g, ' ').trim();
-  
   return processed;
 };
 
-// HTML'i temiz metne çeviren fonksiyon
-const htmlToText = (html: string): string => {
-  // Basit HTML etiketlerini kaldır ama matematiksel içeriği koru
-  let text = html;
-  
-  // KaTeX HTML yapılarını basit metne çevir
-  text = text.replace(/<span class="katex[^"]*"[^>]*>/g, '');
-  text = text.replace(/<\/span>/g, '');
-  text = text.replace(/<span[^>]*>/g, '');
-  
-  // Diğer HTML etiketlerini kaldır
-  text = text.replace(/<[^>]*>/g, '');
-  
-  // HTML entities'leri çöz
-  text = text.replace(/&lt;/g, '<');
-  text = text.replace(/&gt;/g, '>');
-  text = text.replace(/&amp;/g, '&');
-  text = text.replace(/&quot;/g, '"');
-  text = text.replace(/&#39;/g, "'");
-  
-  return text.trim();
-};
-
-// Metni satırlara böl (daha akıllı)
+// Metni satırlara böl
 const wrapText = (text: string, maxWidth: number, fontSize: number = 12): string[] => {
   const words = text.split(' ');
   const lines: string[] = [];
   let currentLine = '';
-  const charWidth = fontSize * 0.6; // Ortalama karakter genişliği
+  const charWidth = fontSize * 0.6;
   
   for (const word of words) {
     const testLine = currentLine ? `${currentLine} ${word}` : word;
@@ -130,7 +112,7 @@ const escapeXml = (text: string): string => {
     .replace(/'/g, '&#39;');
 };
 
-// SVG içinde matematik render etmek için geliştirilmiş renderer
+// SVG içinde HTML içeriği render etmek için foreignObject kullan
 export const renderQuestionToSVG = (
   question: Question, 
   questionNumber: number, 
@@ -139,72 +121,73 @@ export const renderQuestionToSVG = (
   height: number = 600
 ): string => {
   
-  // Soru içeriğini işle - önce KaTeX ile render et, sonra temiz metne çevir
   const questionTitle = question.title ? `${questionNumber}. ${question.title}` : `${questionNumber}. Soru`;
   const renderedContent = renderLatexWithKatex(question.content);
-  const questionContent = htmlToText(renderedContent);
   
   console.log('Original content:', question.content);
   console.log('Rendered with KaTeX:', renderedContent);
-  console.log('Final text:', questionContent);
   
-  // Metin satırlarını oluştur (daha büyük font boyutları)
-  const titleFontSize = 16;
-  const contentFontSize = 14;
-  const optionFontSize = 12;
+  // HTML içeriği oluştur
+  let htmlContent = `
+    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6;">
+      <h3 style="font-size: 16px; font-weight: bold; margin: 0 0 15px 0; color: #1a1a1a;">
+        ${escapeXml(questionTitle)}
+      </h3>
+      <div style="font-size: 14px; margin-bottom: 20px; color: #333;">
+        ${renderedContent}
+      </div>
+  `;
   
-  const titleLines = wrapText(questionTitle, width - 60, titleFontSize);
-  const contentLines = wrapText(questionContent, width - 60, contentFontSize);
-  
-  let yPos = 40;
-  let svgContent = '';
-  
-  // Başlık (kalın ve büyük)
-  titleLines.forEach((line) => {
-    svgContent += `<text x="30" y="${yPos}" font-family="Arial, sans-serif" font-size="${titleFontSize}" font-weight="bold" fill="#1a1a1a">${escapeXml(line)}</text>\n`;
-    yPos += titleFontSize + 6;
-  });
-  
-  yPos += 15;
-  
-  // İçerik (düzenli boyut)
-  contentLines.forEach((line) => {
-    svgContent += `<text x="30" y="${yPos}" font-family="Arial, sans-serif" font-size="${contentFontSize}" fill="#333333">${escapeXml(line)}</text>\n`;
-    yPos += contentFontSize + 4;
-  });
-  
-  // Şıklar
+  // Şıkları ekle
   if (showOptions && question.options && question.options.length > 0) {
-    yPos += 20;
-    
+    htmlContent += '<div style="margin-top: 20px;">';
     question.options.forEach((option, index) => {
-      const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
+      const optionLetter = String.fromCharCode(65 + index);
       const renderedOption = renderLatexWithKatex(option);
-      const processedOption = htmlToText(renderedOption);
-      const optionText = `${optionLetter}) ${processedOption}`;
-      const optionLines = wrapText(optionText, width - 100, optionFontSize);
-      
-      optionLines.forEach((line, lineIndex) => {
-        const xOffset = lineIndex === 0 ? 50 : 70; // İlk satır için harf ile hizala
-        svgContent += `<text x="${xOffset}" y="${yPos}" font-family="Arial, sans-serif" font-size="${optionFontSize}" fill="#555555">${escapeXml(line)}</text>\n`;
-        yPos += optionFontSize + 3;
-      });
-      yPos += 8;
+      htmlContent += `
+        <div style="margin: 8px 0; padding-left: 20px; font-size: 12px; color: #555;">
+          <strong>${optionLetter})</strong> ${renderedOption}
+        </div>
+      `;
     });
+    htmlContent += '</div>';
   }
   
-  // Dinamik yükseklik hesapla
-  const finalHeight = Math.max(height, yPos + 40);
+  htmlContent += '</div>';
+  
+  // KaTeX CSS'ini dahil et
+  const katexCSS = `
+    <style>
+      .katex { font-size: 1.1em; }
+      .katex-display { margin: 1em 0; text-align: center; }
+      .katex-inline { }
+      .math-fallback { 
+        background: #f0f0f0; 
+        padding: 2px 4px; 
+        border-radius: 3px; 
+        font-family: monospace; 
+      }
+      .base { display: inline-block; }
+      .strut { display: inline-block; }
+      .frac-line { border-bottom: 1px solid; margin: 0 0.05em; }
+      .accent-body { position: relative; }
+      .msupsub { text-align: left; }
+      .mfrac > span { text-align: center; display: block; }
+      .mfrac > span + span { border-top: 1px solid; margin-top: 0.05em; padding-top: 0.05em; }
+    </style>
+  `;
   
   return `
-    <svg width="${width}" height="${finalHeight}" xmlns="http://www.w3.org/2000/svg">
+    <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <style>
-          .svg-text { font-family: 'Arial', 'Helvetica', sans-serif; }
-        </style>
+        ${katexCSS}
       </defs>
       <rect width="100%" height="100%" fill="white" stroke="#e0e0e0" stroke-width="1"/>
-      ${svgContent}
+      <foreignObject x="0" y="0" width="100%" height="100%">
+        <div xmlns="http://www.w3.org/1999/xhtml">
+          ${htmlContent}
+        </div>
+      </foreignObject>
     </svg>
   `;
 };

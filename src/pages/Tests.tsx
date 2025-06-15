@@ -464,7 +464,7 @@ export default function Tests() {
               Sil
             </AlertDialogAction>
           </AlertDialogFooter>
-        </AlertDialogFooter>
+        </AlertDialogContent>
       </AlertDialog>
     </div>
   );

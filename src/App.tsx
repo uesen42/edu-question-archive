@@ -1,4 +1,3 @@
-
 import { Suspense, lazy } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
+import { PerformanceMonitor } from "@/components/PerformanceMonitor";
+import { useState, useEffect } from 'react';
 
 // Lazy load page components
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
@@ -28,74 +29,93 @@ const PageLoader = () => (
   </div>
 );
 
-const App = () => (
-  <ErrorBoundary>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route 
-                  index 
-                  element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<PageLoader />}>
-                        <Dashboard />
-                      </Suspense>
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route 
-                  path="questions" 
-                  element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<PageLoader />}>
-                        <Questions />
-                      </Suspense>
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route 
-                  path="tests" 
-                  element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<PageLoader />}>
-                        <Tests />
-                      </Suspense>
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route 
-                  path="categories" 
-                  element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<PageLoader />}>
-                        <Categories />
-                      </Suspense>
-                    </ErrorBoundary>
-                  } 
-                />
-                <Route 
-                  path="settings" 
-                  element={
-                    <ErrorBoundary>
-                      <Suspense fallback={<PageLoader />}>
-                        <Settings />
-                      </Suspense>
-                    </ErrorBoundary>
-                  } 
-                />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ErrorBoundary>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  </ErrorBoundary>
-);
+const App = () => {
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+
+  useEffect(() => {
+    // Show performance monitor in development
+    if (process.env.NODE_ENV === 'development') {
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.ctrlKey && e.shiftKey && e.key === 'P') {
+          setShowPerformanceMonitor(prev => !prev);
+        }
+      };
+      
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
+  }, []);
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Layout />}>
+                  <Route 
+                    index 
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageLoader />}>
+                          <Dashboard />
+                        </Suspense>
+                      </ErrorBoundary>
+                    } 
+                  />
+                  <Route 
+                    path="questions" 
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageLoader />}>
+                          <Questions />
+                        </Suspense>
+                      </ErrorBoundary>
+                    } 
+                  />
+                  <Route 
+                    path="tests" 
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageLoader />}>
+                          <Tests />
+                        </Suspense>
+                      </ErrorBoundary>
+                    } 
+                  />
+                  <Route 
+                    path="categories" 
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageLoader />}>
+                          <Categories />
+                        </Suspense>
+                      </ErrorBoundary>
+                    } 
+                  />
+                  <Route 
+                    path="settings" 
+                    element={
+                      <ErrorBoundary>
+                        <Suspense fallback={<PageLoader />}>
+                          <Settings />
+                        </Suspense>
+                      </ErrorBoundary>
+                    } 
+                  />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
+          </BrowserRouter>
+          <PerformanceMonitor isVisible={showPerformanceMonitor} />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
 
 export default App;

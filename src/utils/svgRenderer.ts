@@ -78,8 +78,6 @@ const escapeXml = (text: string): string => {
     .replace(/'/g, '&#39;');
 };
 
-// KaTeX CSS'inin tamamını SVG içindeki <style> ile göm
-// (KaTeX dist css dosyasından minimum CSS gömülüyor)
 const katexFullCSS = `
 .katex { font: normal 1.21em KaTeX_Main, Times New Roman, serif; }
 .katex-display { margin: 1em 0; text-align: center; }
@@ -119,9 +117,9 @@ export const renderQuestionToSVG = (
   // Soru içeriği KaTeX ile LaTeX dönüştürülerek hazırlanıyor
   const renderedContent = renderLatexWithKatex(question.content);
 
-  // HTML içeriği
+  // HTML içeriği (tam xhtml, foreignObject uyumlu!)
   let htmlContent = `
-    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #212121; width: 100%;" xmlns="http://www.w3.org/1999/xhtml">
+    <div style="font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; color: #212121; width: 100%;">
       <h3 style="font-size: 16px; font-weight: bold; margin: 0 0 15px 0; color: #1a1a1a;">
         ${escapeXml(questionTitle)}
       </h3>
@@ -130,7 +128,6 @@ export const renderQuestionToSVG = (
       </div>
   `;
 
-  // Şıkları ekle (varsa)
   if (showOptions && question.options && question.options.length > 0) {
     htmlContent += '<div style="margin-top: 20px;">';
     question.options.forEach((option, index) => {
@@ -146,19 +143,21 @@ export const renderQuestionToSVG = (
   }
   htmlContent += '</div>';
 
-  // SVG çıktısı
+  // SVG çıktısı (tam xhtml foreignObject ile)
   return `
     <svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
-      <style type="text/css"><![CDATA[
-        ${katexFullCSS}
-      ]]></style>
-      <rect width="100%" height="100%" fill="white" stroke="#e0e0e0" stroke-width="1"/>
       <foreignObject x="0" y="0" width="100%" height="100%">
-        <div xmlns="http://www.w3.org/1999/xhtml">
-          ${htmlContent}
-        </div>
+        <html xmlns="http://www.w3.org/1999/xhtml">
+          <head>
+            <style type="text/css"><![CDATA[
+              ${katexFullCSS}
+            ]]></style>
+          </head>
+          <body style="margin:0;padding:0;background:white;">
+            ${htmlContent}
+          </body>
+        </html>
       </foreignObject>
     </svg>
   `;
 };
-

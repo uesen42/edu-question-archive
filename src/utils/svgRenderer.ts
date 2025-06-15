@@ -1,29 +1,74 @@
 
 import { Question } from '@/types';
+import katex from 'katex';
 
-// Geliştirilmiş LaTeX'i Unicode'a çeviren fonksiyon
-const processLatexToText = (content: string): string => {
+// KaTeX ile LaTeX'i HTML'e çeviren fonksiyon
+const renderLatexWithKatex = (content: string): string => {
   let processed = content;
   
   // HTML etiketlerini kaldır
   processed = processed.replace(/<[^>]*>/g, ' ');
   
-  // LaTeX matematik ifadelerini işle (daha kapsamlı)
-  processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
-    return processLatexFormula(formula.trim());
-  });
-  
-  processed = processed.replace(/\$([^$]+)\$/g, (match, formula) => {
-    return processLatexFormula(formula.trim());
-  });
-  
-  processed = processed.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
-    return processLatexFormula(formula.trim());
-  });
-  
-  processed = processed.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
-    return processLatexFormula(formula.trim());
-  });
+  try {
+    // Display matematik ($$...$$)
+    processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula.trim(), {
+          displayMode: true,
+          throwOnError: false,
+          strict: false
+        });
+      } catch (error) {
+        console.warn('KaTeX display render error:', error);
+        return formula;
+      }
+    });
+    
+    // Inline matematik ($...$)
+    processed = processed.replace(/\$([^$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula.trim(), {
+          displayMode: false,
+          throwOnError: false,
+          strict: false
+        });
+      } catch (error) {
+        console.warn('KaTeX inline render error:', error);
+        return formula;
+      }
+    });
+    
+    // LaTeX blok matematik \[...\]
+    processed = processed.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula.trim(), {
+          displayMode: true,
+          throwOnError: false,
+          strict: false
+        });
+      } catch (error) {
+        console.warn('KaTeX block render error:', error);
+        return formula;
+      }
+    });
+    
+    // LaTeX inline matematik \(...\)
+    processed = processed.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula.trim(), {
+          displayMode: false,
+          throwOnError: false,
+          strict: false
+        });
+      } catch (error) {
+        console.warn('KaTeX parenthesis render error:', error);
+        return formula;
+      }
+    });
+    
+  } catch (error) {
+    console.error('KaTeX processing error:', error);
+  }
   
   // Fazla boşlukları temizle
   processed = processed.replace(/\s+/g, ' ').trim();
@@ -31,90 +76,27 @@ const processLatexToText = (content: string): string => {
   return processed;
 };
 
-const processLatexFormula = (formula: string): string => {
-  let processed = formula;
+// HTML'i temiz metne çeviren fonksiyon
+const htmlToText = (html: string): string => {
+  // Basit HTML etiketlerini kaldır ama matematiksel içeriği koru
+  let text = html;
   
-  // Geliştirilmiş matematik sembolleri
-  const replacements = {
-    // Temel operatörler
-    '\\times': '×', '\\div': '÷', '\\pm': '±', '\\mp': '∓', '\\cdot': '·',
-    '\\ast': '*', '\\star': '⋆', '\\circ': '∘', '\\bullet': '•',
-    
-    // Karşılaştırma operatörleri
-    '\\leq': '≤', '\\geq': '≥', '\\neq': '≠', '\\approx': '≈', '\\equiv': '≡',
-    '\\sim': '∼', '\\simeq': '≃', '\\cong': '≅', '\\propto': '∝',
-    
-    // Set sembolleri
-    '\\in': '∈', '\\notin': '∉', '\\subset': '⊂', '\\supset': '⊃',
-    '\\subseteq': '⊆', '\\supseteq': '⊇', '\\cup': '∪', '\\cap': '∩',
-    '\\emptyset': '∅', '\\infty': '∞',
-    
-    // Yunanca harfler
-    '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ', 
-    '\\epsilon': 'ε', '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ',
-    '\\iota': 'ι', '\\kappa': 'κ', '\\lambda': 'λ', '\\mu': 'μ',
-    '\\nu': 'ν', '\\xi': 'ξ', '\\pi': 'π', '\\rho': 'ρ',
-    '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ', '\\phi': 'φ',
-    '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
-    
-    // Büyük yunanca harfler
-    '\\Gamma': 'Γ', '\\Delta': 'Δ', '\\Theta': 'Θ', '\\Lambda': 'Λ',
-    '\\Xi': 'Ξ', '\\Pi': 'Π', '\\Sigma': 'Σ', '\\Upsilon': 'Υ',
-    '\\Phi': 'Φ', '\\Psi': 'Ψ', '\\Omega': 'Ω',
-    
-    // Matematik fonksiyonları
-    '\\sum': '∑', '\\int': '∫', '\\prod': '∏', '\\partial': '∂', 
-    '\\nabla': '∇', '\\triangle': '△', '\\angle': '∠',
-    
-    // Ok sembolleri
-    '\\rightarrow': '→', '\\leftarrow': '←', '\\leftrightarrow': '↔',
-    '\\Rightarrow': '⇒', '\\Leftarrow': '⇐', '\\Leftrightarrow': '⇔',
-    
-    // Diğer semboller
-    '\\forall': '∀', '\\exists': '∃', '\\neg': '¬', '\\land': '∧', '\\lor': '∨'
-  };
+  // KaTeX HTML yapılarını basit metne çevir
+  text = text.replace(/<span class="katex[^"]*"[^>]*>/g, '');
+  text = text.replace(/<\/span>/g, '');
+  text = text.replace(/<span[^>]*>/g, '');
   
-  Object.entries(replacements).forEach(([latex, unicode]) => {
-    processed = processed.replace(new RegExp(latex.replace('\\', '\\\\'), 'g'), unicode);
-  });
+  // Diğer HTML etiketlerini kaldır
+  text = text.replace(/<[^>]*>/g, '');
   
-  // Kesirler - daha iyi formatla
-  processed = processed.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
+  // HTML entities'leri çöz
+  text = text.replace(/&lt;/g, '<');
+  text = text.replace(/&gt;/g, '>');
+  text = text.replace(/&amp;/g, '&');
+  text = text.replace(/&quot;/g, '"');
+  text = text.replace(/&#39;/g, "'");
   
-  // Kök - daha iyi formatla
-  processed = processed.replace(/\\sqrt\{([^}]*)\}/g, '√($1)');
-  processed = processed.replace(/\\sqrt\[([^\]]*)\]\{([^}]*)\}/g, '$1√($2)');
-  
-  // Üst simgeler - daha iyi formatla
-  processed = processed.replace(/\^\{([^}]*)\}/g, (match, exp) => {
-    const superscripts = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-    if (exp.length === 1 && /\d/.test(exp)) {
-      return superscripts[parseInt(exp)];
-    }
-    return '^(' + exp + ')';
-  });
-  
-  // Alt simgeler - daha iyi formatla
-  processed = processed.replace(/_{([^}]*)}/g, (match, sub) => {
-    const subscripts = '₀₁₂₃₄₅₆₇₈₉';
-    if (sub.length === 1 && /\d/.test(sub)) {
-      return subscripts[parseInt(sub)];
-    }
-    return '_(' + sub + ')';
-  });
-  
-  // Logaritma ve trigonometrik fonksiyonlar
-  processed = processed.replace(/\\log/g, 'log');
-  processed = processed.replace(/\\ln/g, 'ln');
-  processed = processed.replace(/\\sin/g, 'sin');
-  processed = processed.replace(/\\cos/g, 'cos');
-  processed = processed.replace(/\\tan/g, 'tan');
-  
-  // Gereksiz karakterleri temizle
-  processed = processed.replace(/\{([^{}]*)\}/g, '$1');
-  processed = processed.replace(/\\/g, '');
-  
-  return processed;
+  return text.trim();
 };
 
 // Metni satırlara böl (daha akıllı)
@@ -157,9 +139,14 @@ export const renderQuestionToSVG = (
   height: number = 600
 ): string => {
   
-  // Soru içeriğini işle
+  // Soru içeriğini işle - önce KaTeX ile render et, sonra temiz metne çevir
   const questionTitle = question.title ? `${questionNumber}. ${question.title}` : `${questionNumber}. Soru`;
-  const questionContent = processLatexToText(question.content);
+  const renderedContent = renderLatexWithKatex(question.content);
+  const questionContent = htmlToText(renderedContent);
+  
+  console.log('Original content:', question.content);
+  console.log('Rendered with KaTeX:', renderedContent);
+  console.log('Final text:', questionContent);
   
   // Metin satırlarını oluştur (daha büyük font boyutları)
   const titleFontSize = 16;
@@ -192,7 +179,8 @@ export const renderQuestionToSVG = (
     
     question.options.forEach((option, index) => {
       const optionLetter = String.fromCharCode(65 + index); // A, B, C, D
-      const processedOption = processLatexToText(option);
+      const renderedOption = renderLatexWithKatex(option);
+      const processedOption = htmlToText(renderedOption);
       const optionText = `${optionLetter}) ${processedOption}`;
       const optionLines = wrapText(optionText, width - 100, optionFontSize);
       

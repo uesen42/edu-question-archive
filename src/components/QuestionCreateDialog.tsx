@@ -59,6 +59,7 @@ export function QuestionCreateDialog({
         difficultyLevel: formData.difficultyLevel,
         grade: formData.grade,
         tags: formData.tags,
+        imageUrls: [], // Add missing imageUrls property
         isFavorite: false,
         viewCount: 0
       };

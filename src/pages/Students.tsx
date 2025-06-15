@@ -5,6 +5,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
 import { 
   Users, 
   Plus, 
@@ -17,11 +21,31 @@ import {
   Award
 } from 'lucide-react'
 
+interface Student {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  class: string;
+  testsCompleted: number;
+  avgScore: number;
+  lastActivity: string;
+  status: 'active' | 'inactive';
+}
+
 export default function Students() {
   const [searchTerm, setSearchTerm] = useState('')
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const { toast } = useToast()
+  const [newStudent, setNewStudent] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    class: ''
+  })
 
-  // Mock student data
-  const students = [
+  // Mock student data - bu veriler gerçek uygulamada localStorage'dan gelecek
+  const [students, setStudents] = useState<Student[]>([
     {
       id: 1,
       name: 'Ahmet Yılmaz',
@@ -55,7 +79,76 @@ export default function Students() {
       lastActivity: '2025-06-13',
       status: 'inactive'
     }
-  ]
+  ])
+
+  const handleAddStudent = () => {
+    if (!newStudent.name || !newStudent.email || !newStudent.phone || !newStudent.class) {
+      toast({
+        title: 'Hata',
+        description: 'Lütfen tüm alanları doldurun.',
+        variant: 'destructive'
+      })
+      return
+    }
+
+    const student: Student = {
+      id: Math.max(...students.map(s => s.id), 0) + 1,
+      ...newStudent,
+      testsCompleted: 0,
+      avgScore: 0,
+      lastActivity: new Date().toISOString().split('T')[0],
+      status: 'active'
+    }
+
+    setStudents(prev => [...prev, student])
+    setNewStudent({ name: '', email: '', phone: '', class: '' })
+    setIsAddDialogOpen(false)
+    
+    toast({
+      title: 'Başarılı',
+      description: 'Öğrenci başarıyla eklendi.'
+    })
+  }
+
+  const handleExportStudents = () => {
+    const dataToExport = {
+      exportDate: new Date().toISOString(),
+      students: students.map(student => ({
+        'Ad Soyad': student.name,
+        'E-posta': student.email,
+        'Telefon': student.phone,
+        'Sınıf': student.class,
+        'Tamamlanan Test': student.testsCompleted,
+        'Ortalama Puan': student.avgScore,
+        'Son Aktivite': student.lastActivity,
+        'Durum': student.status === 'active' ? 'Aktif' : 'Pasif'
+      }))
+    }
+
+    const csvContent = [
+      Object.keys(dataToExport.students[0] || {}).join(','),
+      ...dataToExport.students.map(student => 
+        Object.values(student).map(value => 
+          typeof value === 'string' && value.includes(',') ? `"${value}"` : value
+        ).join(',')
+      )
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', `ogrenciler-${new Date().toISOString().split('T')[0]}.csv`)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    toast({
+      title: 'Dışa Aktarıldı',
+      description: 'Öğrenci listesi CSV olarak indirildi.'
+    })
+  }
 
   const filteredStudents = students.filter(student =>
     student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -106,14 +199,79 @@ export default function Students() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={handleExportStudents}>
             <Download className="h-4 w-4" />
             Dışa Aktar
           </Button>
-          <Button className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
-            Öğrenci Ekle
-          </Button>
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" />
+                Öğrenci Ekle
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Yeni Öğrenci Ekle</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Ad Soyad</Label>
+                  <Input
+                    id="name"
+                    value={newStudent.name}
+                    onChange={(e) => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Öğrenci adı ve soyadı"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">E-posta</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={newStudent.email}
+                    onChange={(e) => setNewStudent(prev => ({ ...prev, email: e.target.value }))}
+                    placeholder="ornek@email.com"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Telefon</Label>
+                  <Input
+                    id="phone"
+                    value={newStudent.phone}
+                    onChange={(e) => setNewStudent(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="0532 123 4567"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="class">Sınıf</Label>
+                  <Select value={newStudent.class} onValueChange={(value) => setNewStudent(prev => ({ ...prev, class: value }))}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sınıf seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="9-A">9-A</SelectItem>
+                      <SelectItem value="9-B">9-B</SelectItem>
+                      <SelectItem value="10-A">10-A</SelectItem>
+                      <SelectItem value="10-B">10-B</SelectItem>
+                      <SelectItem value="11-A">11-A</SelectItem>
+                      <SelectItem value="11-B">11-B</SelectItem>
+                      <SelectItem value="12-A">12-A</SelectItem>
+                      <SelectItem value="12-B">12-B</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                    İptal
+                  </Button>
+                  <Button onClick={handleAddStudent}>
+                    Öğrenci Ekle
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 

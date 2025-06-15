@@ -2,44 +2,137 @@
 import jsPDF from 'jspdf';
 import { Test, Question, Category } from '@/types';
 
-// LaTeX ve matematik işaretlerini Unicode'a çeviren fonksiyon
+// Gelişmiş LaTeX işleme fonksiyonu
 const processMathContent = (content: string): string => {
-  return content
-    // HTML etiketlerini kaldır
-    .replace(/<[^>]*>/g, '')
-    // LaTeX matematik ifadelerini temizle
-    .replace(/\\\[([^\\]+)\\\]/g, ' $1 ')
-    .replace(/\\\(([^\\]+)\\\)/g, '$1')
-    .replace(/\$\$([^$]+)\$\$/g, ' $1 ')
-    .replace(/\$([^$]+)\$/g, '$1')
-    // Temel LaTeX komutlarını Unicode'a çevir
-    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
-    .replace(/\\times/g, '×')
-    .replace(/\\div/g, '÷')
-    .replace(/\\pm/g, '±')
-    .replace(/\\pi/g, 'π')
-    .replace(/\\alpha/g, 'α')
-    .replace(/\\beta/g, 'β')
-    .replace(/\\gamma/g, 'γ')
-    .replace(/\\delta/g, 'δ')
-    .replace(/\\theta/g, 'θ')
-    .replace(/\\lambda/g, 'λ')
-    .replace(/\\mu/g, 'μ')
-    .replace(/\\sigma/g, 'σ')
-    .replace(/\\sum/g, '∑')
-    .replace(/\\int/g, '∫')
-    .replace(/\\infty/g, '∞')
-    .replace(/\\leq/g, '≤')
-    .replace(/\\geq/g, '≥')
-    .replace(/\\neq/g, '≠')
-    .replace(/\\approx/g, '≈')
-    // Üst ve alt simgeler için basit çözüm
-    .replace(/\^(\w+)/g, '^$1')
-    .replace(/\_(\w+)/g, '_$1')
-    // Fazla boşlukları temizle
-    .replace(/\s+/g, ' ')
-    .trim();
+  let processed = content;
+  
+  // HTML etiketlerini kaldır
+  processed = processed.replace(/<[^>]*>/g, '');
+  
+  // LaTeX blok matematik ifadelerini işle $$...$$
+  processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+    return '\n' + processLatexFormula(formula.trim()) + '\n';
+  });
+  
+  // LaTeX inline matematik ifadelerini işle $...$
+  processed = processed.replace(/\$([^$]+)\$/g, (match, formula) => {
+    return processLatexFormula(formula.trim());
+  });
+  
+  // LaTeX bracket matematik ifadelerini işle \[...\]
+  processed = processed.replace(/\\\[([^\]]+)\\\]/g, (match, formula) => {
+    return '\n' + processLatexFormula(formula.trim()) + '\n';
+  });
+  
+  // LaTeX parenthesis matematik ifadelerini işle \(...\)
+  processed = processed.replace(/\\\(([^)]+)\\\)/g, (match, formula) => {
+    return processLatexFormula(formula.trim());
+  });
+  
+  // Fazla boşlukları temizle
+  processed = processed.replace(/\s+/g, ' ').trim();
+  
+  return processed;
+};
+
+// LaTeX formüllerini Unicode'a çeviren fonksiyon
+const processLatexFormula = (formula: string): string => {
+  let processed = formula;
+  
+  // Temel matematik sembolleri
+  processed = processed.replace(/\\times/g, '×');
+  processed = processed.replace(/\\div/g, '÷');
+  processed = processed.replace(/\\pm/g, '±');
+  processed = processed.replace(/\\mp/g, '∓');
+  processed = processed.replace(/\\cdot/g, '·');
+  processed = processed.replace(/\\ast/g, '∗');
+  
+  // Karşılaştırma sembolleri
+  processed = processed.replace(/\\leq/g, '≤');
+  processed = processed.replace(/\\geq/g, '≥');
+  processed = processed.replace(/\\neq/g, '≠');
+  processed = processed.replace(/\\approx/g, '≈');
+  processed = processed.replace(/\\equiv/g, '≡');
+  processed = processed.replace(/\\sim/g, '∼');
+  
+  // Yunanca harfler
+  processed = processed.replace(/\\alpha/g, 'α');
+  processed = processed.replace(/\\beta/g, 'β');
+  processed = processed.replace(/\\gamma/g, 'γ');
+  processed = processed.replace(/\\delta/g, 'δ');
+  processed = processed.replace(/\\epsilon/g, 'ε');
+  processed = processed.replace(/\\zeta/g, 'ζ');
+  processed = processed.replace(/\\eta/g, 'η');
+  processed = processed.replace(/\\theta/g, 'θ');
+  processed = processed.replace(/\\lambda/g, 'λ');
+  processed = processed.replace(/\\mu/g, 'μ');
+  processed = processed.replace(/\\pi/g, 'π');
+  processed = processed.replace(/\\rho/g, 'ρ');
+  processed = processed.replace(/\\sigma/g, 'σ');
+  processed = processed.replace(/\\tau/g, 'τ');
+  processed = processed.replace(/\\phi/g, 'φ');
+  processed = processed.replace(/\\chi/g, 'χ');
+  processed = processed.replace(/\\psi/g, 'ψ');
+  processed = processed.replace(/\\omega/g, 'ω');
+  
+  // Büyük Yunanca harfler
+  processed = processed.replace(/\\Gamma/g, 'Γ');
+  processed = processed.replace(/\\Delta/g, 'Δ');
+  processed = processed.replace(/\\Theta/g, 'Θ');
+  processed = processed.replace(/\\Lambda/g, 'Λ');
+  processed = processed.replace(/\\Pi/g, 'Π');
+  processed = processed.replace(/\\Sigma/g, 'Σ');
+  processed = processed.replace(/\\Phi/g, 'Φ');
+  processed = processed.replace(/\\Psi/g, 'Ψ');
+  processed = processed.replace(/\\Omega/g, 'Ω');
+  
+  // Matematik fonksiyonları
+  processed = processed.replace(/\\sin/g, 'sin');
+  processed = processed.replace(/\\cos/g, 'cos');
+  processed = processed.replace(/\\tan/g, 'tan');
+  processed = processed.replace(/\\log/g, 'log');
+  processed = processed.replace(/\\ln/g, 'ln');
+  processed = processed.replace(/\\exp/g, 'exp');
+  
+  // Özel sembeller
+  processed = processed.replace(/\\infty/g, '∞');
+  processed = processed.replace(/\\sum/g, '∑');
+  processed = processed.replace(/\\prod/g, '∏');
+  processed = processed.replace(/\\int/g, '∫');
+  processed = processed.replace(/\\partial/g, '∂');
+  processed = processed.replace(/\\nabla/g, '∇');
+  
+  // Kesirler \frac{a}{b} -> (a)/(b)
+  processed = processed.replace(/\\frac\{([^}]*)\}\{([^}]*)\}/g, '($1)/($2)');
+  
+  // Kök \sqrt{x} -> √(x)
+  processed = processed.replace(/\\sqrt\{([^}]*)\}/g, '√($1)');
+  
+  // Üst simge x^{n} -> x^n veya x^{abc} -> x^(abc)
+  processed = processed.replace(/\^\{([^}]*)\}/g, (match, exp) => {
+    if (exp.length === 1) return '^' + exp;
+    return '^(' + exp + ')';
+  });
+  
+  // Alt simge x_{n} -> x_n veya x_{abc} -> x_(abc)
+  processed = processed.replace(/\_\{([^}]*)\}/g, (match, sub) => {
+    if (sub.length === 1) return '_' + sub;
+    return '_(' + sub + ')';
+  });
+  
+  // Basit üst simge x^a -> x^a
+  processed = processed.replace(/\^([a-zA-Z0-9])/g, '^$1');
+  
+  // Basit alt simge x_a -> x_a
+  processed = processed.replace(/\_([a-zA-Z0-9])/g, '_$1');
+  
+  // Gereksiz süslü parantezleri kaldır
+  processed = processed.replace(/\{([^{}]*)\}/g, '$1');
+  
+  // Backslash'leri temizle
+  processed = processed.replace(/\\/g, '');
+  
+  return processed;
 };
 
 // Yedek JSON export fonksiyonu
@@ -55,8 +148,7 @@ const createFallbackJSONExport = (test: Test, testQuestions: Question[]) => {
       number: index + 1,
       title: q.title,
       content: processMathContent(q.content),
-      options: test.settings.showOptions && q.options ? q.options : undefined,
-      originalContent: q.content
+      options: test.settings.showOptions && q.options ? q.options.map(opt => processMathContent(opt)) : undefined,
     })),
     exportDate: new Date().toISOString(),
     note: "PDF oluşturulamadı, yedek JSON dosyası oluşturuldu"
@@ -93,15 +185,14 @@ export const exportTestToPDF = (
     // Sayfa boyutları ve marjinler
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
-    const margin = 15;
+    const margin = 12;
     const columnWidth = (pageWidth - 3 * margin) / 2;
-    const lineHeight = 6;
+    const lineHeight = 5;
     
     // Başlangıç pozisyonları
     let leftColumnY = 35;
     let rightColumnY = 35;
     let currentColumn: 'left' | 'right' = 'left';
-    let currentPage = 1;
     
     // Font ayarları
     pdf.setFont("helvetica");
@@ -131,9 +222,8 @@ export const exportTestToPDF = (
       let yPosition = currentColumn === 'left' ? leftColumnY : rightColumnY;
       
       // Yeni sayfa kontrolü
-      if (yPosition > pageHeight - 50) {
+      if (yPosition > pageHeight - 40) {
         pdf.addPage();
-        currentPage++;
         leftColumnY = 25;
         rightColumnY = 25;
         yPosition = 25;
@@ -144,30 +234,23 @@ export const exportTestToPDF = (
         pdf.line(pageWidth / 2, 15, pageWidth / 2, pageHeight - 15);
       }
       
-      // Soru numarası
-      pdf.setFontSize(11);
+      // Soru numarası ve başlık
+      pdf.setFontSize(10);
       pdf.setFont("helvetica", "bold");
-      pdf.text(`${index + 1}.`, xPosition, yPosition);
-      yPosition += lineHeight + 2;
-      
-      // Soru başlığı
-      if (question.title && question.title.trim()) {
-        pdf.setFontSize(10);
-        pdf.setFont("helvetica", "bold");
-        const titleText = question.title.substring(0, 100); // Uzun başlıkları kısalt
-        const titleLines = pdf.splitTextToSize(titleText, columnWidth - 10);
-        pdf.text(titleLines, xPosition, yPosition);
-        yPosition += titleLines.length * lineHeight + 2;
-      }
+      const questionHeader = `${index + 1}. ${question.title || ''}`;
+      const headerLines = pdf.splitTextToSize(questionHeader, columnWidth - 5);
+      pdf.text(headerLines, xPosition, yPosition);
+      yPosition += headerLines.length * lineHeight + 2;
       
       // Soru içeriği
       pdf.setFontSize(9);
       pdf.setFont("helvetica", "normal");
       const processedContent = processMathContent(question.content);
-      const contentText = processedContent.substring(0, 200); // İçeriği kısalt
-      const contentLines = pdf.splitTextToSize(contentText, columnWidth - 10);
-      pdf.text(contentLines, xPosition, yPosition);
-      yPosition += contentLines.length * lineHeight + 3;
+      if (processedContent.trim()) {
+        const contentLines = pdf.splitTextToSize(processedContent, columnWidth - 5);
+        pdf.text(contentLines, xPosition, yPosition);
+        yPosition += contentLines.length * lineHeight + 3;
+      }
       
       // Şıklar (eğer ayar açıksa ve şıklar varsa)
       if (test.settings.showOptions && question.options && question.options.length > 0) {
@@ -175,10 +258,9 @@ export const exportTestToPDF = (
         pdf.setFont("helvetica", "normal");
         
         question.options.forEach((option, optionIndex) => {
-          if (yPosition > pageHeight - 30) {
-            // Şık için yeni sayfa gerekirse
+          // Yeni sayfa kontrolü şıklar için
+          if (yPosition > pageHeight - 25) {
             pdf.addPage();
-            currentPage++;
             leftColumnY = 25;
             rightColumnY = 25;
             yPosition = 25;
@@ -189,15 +271,16 @@ export const exportTestToPDF = (
           }
           
           const optionLetter = String.fromCharCode(65 + optionIndex); // A, B, C, D
-          const optionText = `${optionLetter}) ${processMathContent(option).substring(0, 80)}`;
-          const optionLines = pdf.splitTextToSize(optionText, columnWidth - 15);
-          pdf.text(optionLines, xPosition + 5, yPosition);
-          yPosition += optionLines.length * (lineHeight - 1) + 1;
+          const processedOption = processMathContent(option);
+          const optionText = `${optionLetter}) ${processedOption}`;
+          const optionLines = pdf.splitTextToSize(optionText, columnWidth - 10);
+          pdf.text(optionLines, xPosition + 3, yPosition);
+          yPosition += optionLines.length * (lineHeight - 0.5) + 1;
         });
-        yPosition += 2; // Şıklar sonrası ek boşluk
+        yPosition += 2;
       }
       
-      yPosition += 5; // Sorular arası boşluk
+      yPosition += 4; // Sorular arası boşluk
       
       // Sütun değiştir
       if (currentColumn === 'left') {

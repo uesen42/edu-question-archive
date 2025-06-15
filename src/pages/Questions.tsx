@@ -1,14 +1,16 @@
+
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Search, BookOpen, Download } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Plus, Search, BookOpen, Download, FileText, CheckSquare, Square } from 'lucide-react';
 import { useQuestionStore } from '@/store/questionStore';
 import { QuestionCard } from '@/components/QuestionCard';
 import { QuestionViewDialog } from '@/components/QuestionViewDialog';
 import { QuestionEditDialog } from '@/components/QuestionEditDialog';
 import { Question } from '@/types';
-import { exportAllQuestionsToImages } from '@/utils/questionImageExport';
+import { exportAllQuestionsToImages, exportQuestionToImage } from '@/utils/questionImageExport';
 
 export default function Questions() {
   const {
@@ -21,7 +23,8 @@ export default function Questions() {
     setFilter,
     getFilteredQuestions,
     deleteQuestion,
-    updateQuestion
+    updateQuestion,
+    addTest
   } = useQuestionStore();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -33,6 +36,10 @@ export default function Questions() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
+
+  // Selection states
+  const [selectedQuestions, setSelectedQuestions] = useState<Set<string>>(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   useEffect(() => {
     loadQuestions();
@@ -79,6 +86,70 @@ export default function Questions() {
     await exportAllQuestionsToImages(filteredQuestions, categories, true);
   };
 
+  const handleSelectQuestion = (questionId: string) => {
+    const newSelected = new Set(selectedQuestions);
+    if (newSelected.has(questionId)) {
+      newSelected.delete(questionId);
+    } else {
+      newSelected.add(questionId);
+    }
+    setSelectedQuestions(newSelected);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedQuestions.size === filteredQuestions.length) {
+      setSelectedQuestions(new Set());
+    } else {
+      setSelectedQuestions(new Set(filteredQuestions.map(q => q.id)));
+    }
+  };
+
+  const handleToggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedQuestions(new Set());
+  };
+
+  const handleExportSelectedImages = async () => {
+    const selectedQuestionsList = filteredQuestions.filter(q => selectedQuestions.has(q.id));
+    for (let i = 0; i < selectedQuestionsList.length; i++) {
+      const question = selectedQuestionsList[i];
+      const category = categories.find(cat => cat.id === question.categoryId);
+      await exportQuestionToImage(question, i + 1, category, true);
+      // Tarayıcıyı bloke etmemek için kısa bir bekleme
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  };
+
+  const handleCreateTestFromSelected = async () => {
+    const selectedQuestionsList = filteredQuestions.filter(q => selectedQuestions.has(q.id));
+    if (selectedQuestionsList.length === 0) {
+      alert('Lütfen en az bir soru seçin.');
+      return;
+    }
+
+    const testTitle = prompt('Test başlığını girin:');
+    if (!testTitle) return;
+
+    const testDescription = prompt('Test açıklamasını girin (opsiyonel):') || '';
+
+    const testData = {
+      title: testTitle,
+      description: testDescription,
+      questionIds: Array.from(selectedQuestions),
+      settings: {
+        showAnswers: true,
+        randomizeOrder: false,
+        showOptions: true,
+        timeLimit: undefined
+      }
+    };
+
+    await addTest(testData);
+    alert(`"${testTitle}" adlı test ${selectedQuestions.size} soru ile oluşturuldu!`);
+    setSelectedQuestions(new Set());
+    setIsSelectionMode(false);
+  };
+
   const getCategoryById = (id: string) => {
     return categories.find(cat => cat.id === id);
   };
@@ -90,21 +161,75 @@ export default function Questions() {
           <h1 className="text-3xl font-bold text-gray-900">Sorular</h1>
           <p className="text-gray-600 mt-2">
             Toplam {questions.length} soru • Filtrelenen: {filteredQuestions.length}
+            {selectedQuestions.size > 0 && ` • Seçilen: ${selectedQuestions.size}`}
           </p>
         </div>
         <div className="flex gap-2">
-          <Button 
-            variant="outline"
-            onClick={handleExportAllImages}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Tüm Soruları Resim Olarak İndir
-          </Button>
-          <Button onClick={handleAddNew} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Yeni Soru Ekle
-          </Button>
+          {!isSelectionMode ? (
+            <>
+              <Button 
+                variant="outline"
+                onClick={handleExportAllImages}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Tüm Soruları Resim Olarak İndir
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={handleToggleSelectionMode}
+                className="flex items-center gap-2"
+              >
+                <CheckSquare className="h-4 w-4" />
+                Soru Seç
+              </Button>
+              <Button onClick={handleAddNew} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Yeni Soru Ekle
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                variant="outline"
+                onClick={handleSelectAll}
+                className="flex items-center gap-2"
+              >
+                {selectedQuestions.size === filteredQuestions.length ? (
+                  <Square className="h-4 w-4" />
+                ) : (
+                  <CheckSquare className="h-4 w-4" />
+                )}
+                {selectedQuestions.size === filteredQuestions.length ? 'Seçimi Kaldır' : 'Hepsini Seç'}
+              </Button>
+              {selectedQuestions.size > 0 && (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={handleExportSelectedImages}
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    Seçilenleri Resim Olarak İndir ({selectedQuestions.size})
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={handleCreateTestFromSelected}
+                    className="flex items-center gap-2"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Test Oluştur ({selectedQuestions.size})
+                  </Button>
+                </>
+              )}
+              <Button 
+                variant="outline"
+                onClick={handleToggleSelectionMode}
+              >
+                İptal
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -192,14 +317,24 @@ export default function Questions() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredQuestions.map((question) => (
-            <QuestionCard
-              key={question.id}
-              question={question}
-              category={getCategoryById(question.categoryId)}
-              onEdit={handleEdit}
-              onDelete={handleDelete}
-              onView={handleView}
-            />
+            <div key={question.id} className="relative">
+              {isSelectionMode && (
+                <div className="absolute top-2 left-2 z-10">
+                  <Checkbox
+                    checked={selectedQuestions.has(question.id)}
+                    onCheckedChange={() => handleSelectQuestion(question.id)}
+                    className="bg-white border-2"
+                  />
+                </div>
+              )}
+              <QuestionCard
+                question={question}
+                category={getCategoryById(question.categoryId)}
+                onEdit={handleEdit}
+                onDelete={handleDelete}
+                onView={handleView}
+              />
+            </div>
           ))}
         </div>
       )}

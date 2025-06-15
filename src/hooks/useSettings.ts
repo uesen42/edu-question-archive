@@ -54,10 +54,14 @@ export function useSettings() {
   const exportData = () => {
     try {
       const data = {
-        questions: JSON.stringify(questions),
-        categories: JSON.stringify(categories),
-        tests: JSON.stringify(tests),
-        settings: JSON.stringify(settings),
+        exportDate: new Date().toISOString(),
+        version: '1.0.0',
+        data: {
+          questions,
+          categories,
+          tests,
+          settings
+        }
       };
       
       const blob = new Blob([JSON.stringify(data, null, 2)], {
@@ -98,14 +102,23 @@ export function useSettings() {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const data = JSON.parse(e.target?.result as string);
+          const importedData = JSON.parse(e.target?.result as string);
           
-          if (data.questions) localStorage.setItem('questions', data.questions);
-          if (data.categories) localStorage.setItem('categories', data.categories);
-          if (data.tests) localStorage.setItem('tests', data.tests);
+          // Yeni format desteği
+          const data = importedData.data || importedData;
+          
+          if (data.questions) {
+            localStorage.setItem('questions', JSON.stringify(data.questions));
+          }
+          if (data.categories) {
+            localStorage.setItem('categories', JSON.stringify(data.categories));
+          }
+          if (data.tests) {
+            localStorage.setItem('tests', JSON.stringify(data.tests));
+          }
           if (data.settings) {
-            localStorage.setItem('app-settings', data.settings);
-            setSettings(JSON.parse(data.settings));
+            localStorage.setItem('app-settings', JSON.stringify(data.settings));
+            setSettings(data.settings);
           }
           
           toast({

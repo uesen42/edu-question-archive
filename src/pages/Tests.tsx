@@ -3,12 +3,16 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Plus, FileText, Calendar, Download } from 'lucide-react';
+import { Plus, FileText, Calendar, Download, Eye } from 'lucide-react';
 import { TestCreateDialog } from '@/components/TestCreateDialog';
+import { TestViewDialog } from '@/components/TestViewDialog';
 import { useQuestionStore } from '@/store/questionStore';
+import { Test } from '@/types';
 
 export default function Tests() {
   const [isTestCreateOpen, setIsTestCreateOpen] = useState(false);
+  const [isTestViewOpen, setIsTestViewOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const { 
     tests, 
     questions, 
@@ -27,6 +31,46 @@ export default function Tests() {
 
   const handleCreateTest = (testData: any) => {
     addTest(testData);
+  };
+
+  const handleViewTest = (test: Test) => {
+    setSelectedTest(test);
+    setIsTestViewOpen(true);
+  };
+
+  const handleDownloadTest = (test: Test) => {
+    const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
+    
+    const exportData = {
+      test: {
+        title: test.title,
+        description: test.description,
+        createdAt: test.createdAt,
+        settings: test.settings
+      },
+      questions: testQuestions.map(q => ({
+        title: q.title,
+        content: q.content,
+        categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
+        difficultyLevel: q.difficultyLevel,
+        grade: q.grade,
+        tags: q.tags
+      })),
+      exportDate: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+      type: 'application/json',
+    });
+    
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -101,10 +145,24 @@ export default function Tests() {
                     <Calendar className="h-3 w-3 inline mr-1" />
                     {new Date(test.createdAt).toLocaleDateString('tr-TR')}
                   </div>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-3 w-3 mr-1" />
-                    İndir
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewTest(test)}
+                    >
+                      <Eye className="h-3 w-3 mr-1" />
+                      Görüntüle
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleDownloadTest(test)}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      İndir
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -118,6 +176,14 @@ export default function Tests() {
         onSave={handleCreateTest}
         questions={questions}
         categories={categories}
+      />
+
+      <TestViewDialog
+        test={selectedTest}
+        questions={questions}
+        categories={categories}
+        open={isTestViewOpen}
+        onOpenChange={setIsTestViewOpen}
       />
     </div>
   );

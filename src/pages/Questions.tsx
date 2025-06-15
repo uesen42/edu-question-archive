@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Search, BookOpen } from 'lucide-react';
 import { useQuestionStore } from '@/store/questionStore';
 import { QuestionCard } from '@/components/QuestionCard';
+import { QuestionViewDialog } from '@/components/QuestionViewDialog';
+import { QuestionEditDialog } from '@/components/QuestionEditDialog';
 import { Question } from '@/types';
 
 export default function Questions() {
@@ -18,13 +19,19 @@ export default function Questions() {
     loadCategories,
     setFilter,
     getFilteredQuestions,
-    deleteQuestion
+    deleteQuestion,
+    updateQuestion
   } = useQuestionStore();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [selectedGrade, setSelectedGrade] = useState<string>('all');
+  
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedQuestion, setSelectedQuestion] = useState<Question | null>(null);
 
   useEffect(() => {
     loadQuestions();
@@ -43,8 +50,8 @@ export default function Questions() {
   const filteredQuestions = getFilteredQuestions();
 
   const handleEdit = (question: Question) => {
-    // TODO: Open edit modal/dialog
-    console.log('Edit question:', question);
+    setSelectedQuestion(question);
+    setEditDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -54,13 +61,17 @@ export default function Questions() {
   };
 
   const handleView = (question: Question) => {
-    // TODO: Open view modal/dialog
-    console.log('View question:', question);
+    setSelectedQuestion(question);
+    setViewDialogOpen(true);
   };
 
   const handleAddNew = () => {
     // TODO: Open add question modal/dialog
     console.log('Add new question');
+  };
+
+  const handleSaveQuestion = async (question: Question) => {
+    await updateQuestion(question);
   };
 
   const getCategoryById = (id: string) => {
@@ -177,6 +188,22 @@ export default function Questions() {
           ))}
         </div>
       )}
+
+      {/* Dialogs */}
+      <QuestionViewDialog
+        question={selectedQuestion}
+        category={selectedQuestion ? getCategoryById(selectedQuestion.categoryId) : undefined}
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+      />
+
+      <QuestionEditDialog
+        question={selectedQuestion}
+        categories={categories}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleSaveQuestion}
+      />
     </div>
   );
 }

@@ -32,12 +32,15 @@ const htmlToCanvas = async (htmlContent: string, width: number = 800, height: nu
     tempDiv.style.position = 'absolute';
     tempDiv.style.top = '-9999px';
     tempDiv.style.left = '-9999px';
-    tempDiv.style.width = width + 'px';
-    tempDiv.style.padding = '20px';
+    tempDiv.style.width = '250px'; // Sabit genişlik
+    tempDiv.style.maxWidth = '250px';
+    tempDiv.style.padding = '10px';
     tempDiv.style.fontFamily = 'Arial, sans-serif';
-    tempDiv.style.fontSize = '14px';
-    tempDiv.style.lineHeight = '1.5';
+    tempDiv.style.fontSize = '12px';
+    tempDiv.style.lineHeight = '1.4';
     tempDiv.style.backgroundColor = 'white';
+    tempDiv.style.wordWrap = 'break-word';
+    tempDiv.style.overflow = 'hidden';
 
     document.body.appendChild(tempDiv);
 
@@ -52,77 +55,107 @@ const htmlToCanvas = async (htmlContent: string, width: number = 800, height: nu
         document.body.removeChild(tempDiv);
         reject(error);
       }
-    }, 100);
+    }, 500); // Daha fazla bekleme süresi
   });
 };
 
 // HTML elementini canvas'a çizme fonksiyonu
 const drawHtmlToCanvas = (ctx: CanvasRenderingContext2D, element: HTMLElement, maxWidth: number, maxHeight: number) => {
   let currentY = 20;
-  const margin = 20;
-  const lineHeight = 20;
+  const margin = 15;
+  const lineHeight = 18;
+  const maxTextWidth = 250; // Sabit metin genişliği
 
   // Başlık
   const titleElements = element.querySelectorAll('.question-title');
   titleElements.forEach((titleEl) => {
-    ctx.font = 'bold 16px Arial';
+    ctx.font = 'bold 14px Arial';
     ctx.fillStyle = '#1a1a1a';
     const title = titleEl.textContent || '';
-    ctx.fillText(title, margin, currentY);
-    currentY += 30;
+    const titleLines = wrapText(ctx, title, maxTextWidth);
+    titleLines.forEach(line => {
+      ctx.fillText(line, margin, currentY);
+      currentY += lineHeight;
+    });
+    currentY += 10;
   });
 
   // İçerik
   const contentElements = element.querySelectorAll('.question-content');
   contentElements.forEach((contentEl) => {
-    ctx.font = '14px Arial';
+    ctx.font = '12px Arial';
     ctx.fillStyle = '#333';
     
     // KaTeX render edilmiş elementleri kontrol et
     const mathElements = contentEl.querySelectorAll('.katex');
     if (mathElements.length > 0) {
-      // Matematik ifadeleri var, bunları özel olarak işle
-      drawMathContent(ctx, contentEl, margin, currentY, maxWidth - 2 * margin);
-      currentY += Math.min(mathElements.length * 25 + 50, maxHeight - currentY - 100);
+      // Matematik ifadeleri var, bunları metin olarak çevir
+      const mathText = extractMathText(contentEl);
+      const lines = wrapText(ctx, mathText, maxTextWidth);
+      lines.forEach(line => {
+        ctx.fillText(line, margin, currentY);
+        currentY += lineHeight;
+      });
     } else {
       // Normal metin
       const text = contentEl.textContent || '';
-      const lines = wrapText(ctx, text, maxWidth - 2 * margin);
+      const lines = wrapText(ctx, text, maxTextWidth);
       lines.forEach(line => {
         ctx.fillText(line, margin, currentY);
         currentY += lineHeight;
       });
     }
+    currentY += 10;
   });
 
   // Seçenekler
   const optionElements = element.querySelectorAll('.question-option');
   optionElements.forEach((optionEl, index) => {
-    ctx.font = '12px Arial';
+    ctx.font = '11px Arial';
     ctx.fillStyle = '#555';
     const optionLetter = String.fromCharCode(65 + index);
-    const text = `${optionLetter}) ${optionEl.textContent || ''}`;
-    const lines = wrapText(ctx, text, maxWidth - 2 * margin - 20);
+    const optionText = optionEl.textContent || '';
+    const text = `${optionLetter}) ${optionText}`;
+    const lines = wrapText(ctx, text, maxTextWidth - 15);
     lines.forEach((line, lineIndex) => {
-      const x = lineIndex === 0 ? margin + 20 : margin + 40;
+      const x = lineIndex === 0 ? margin : margin + 15;
       ctx.fillText(line, x, currentY);
       currentY += 16;
     });
-    currentY += 8;
+    currentY += 5;
   });
 };
 
-// Matematik içeriğini özel olarak çizme
-const drawMathContent = (ctx: CanvasRenderingContext2D, element: Element, x: number, y: number, maxWidth: number) => {
-  const text = element.textContent || '';
-  // Basit fallback - karmaşık matematik için
-  const lines = wrapText(ctx, text, maxWidth);
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x, y + (index * 20));
+// Matematik metinlerini düz metne çevir
+const extractMathText = (element: Element): string => {
+  let text = '';
+  
+  const walker = document.createTreeWalker(
+    element,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  let node;
+  while (node = walker.nextNode()) {
+    if (node.parentElement && !node.parentElement.classList.contains('katex')) {
+      text += node.textContent + ' ';
+    }
+  }
+  
+  // KaTeX elementlerini basit metne çevir
+  const mathElements = element.querySelectorAll('.katex');
+  mathElements.forEach(mathEl => {
+    // Math elementinin title attribute'ünü kullan (orijinal LaTeX)
+    const mathTitle = mathEl.getAttribute('title') || mathEl.textContent || '';
+    text += ' ' + mathTitle + ' ';
   });
+  
+  return text.trim();
 };
 
-// Metin sarma fonksiyonu
+// Metin sarma fonksiyonu - 250 pixel için optimize edilmiş
 const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] => {
   const words = text.split(' ');
   const lines = [];
@@ -147,7 +180,7 @@ const wrapText = (ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines;
 };
 
-// LaTeX içeriğini render et
+// LaTeX içeriğini daha güvenli şekilde render et
 const renderLatexInHtml = (content: string): string => {
   let rendered = content;
   
@@ -155,22 +188,34 @@ const renderLatexInHtml = (content: string): string => {
     // Block math $$...$$ 
     rendered = rendered.replace(/\$\$([^$]+)\$\$/g, (match, latex) => {
       try {
-        return katex.renderToString(latex, { displayMode: true, throwOnError: false });
+        return katex.renderToString(latex.trim(), { 
+          displayMode: true, 
+          throwOnError: false,
+          trust: false,
+          strict: false
+        });
       } catch {
-        return match;
+        return `[${latex.trim()}]`; // Fallback
       }
     });
 
     // Inline math $...$
     rendered = rendered.replace(/\$([^$]+)\$/g, (match, latex) => {
       try {
-        return katex.renderToString(latex, { displayMode: false, throwOnError: false });
+        return katex.renderToString(latex.trim(), { 
+          displayMode: false, 
+          throwOnError: false,
+          trust: false,
+          strict: false
+        });
       } catch {
-        return match;
+        return `[${latex.trim()}]`; // Fallback
       }
     });
   } catch (error) {
     console.warn('LaTeX rendering hatası:', error);
+    // LaTeX render edilemezse orijinal metni döndür
+    return content;
   }
 
   return rendered;
@@ -191,29 +236,30 @@ export const exportQuestionToImage = async (
     // LaTeX içeriğini render et
     const renderedContent = renderLatexInHtml(question.content);
 
-    // HTML içeriği oluştur
+    // HTML içeriği oluştur - 250px genişlik için optimize edilmiş
     let htmlContent = `
-      <div class="question-container">
-        <div class="question-title">${questionTitle}</div>
-        <div class="question-content">${renderedContent}</div>
+      <div class="question-container" style="width: 250px; max-width: 250px;">
+        <div class="question-title" style="font-weight: bold; margin-bottom: 8px;">${questionTitle}</div>
+        <div class="question-content" style="margin-bottom: 12px; word-wrap: break-word;">${renderedContent}</div>
     `;
 
     // Seçenekleri ekle
     if (showOptions && question.options && question.options.length > 0) {
       question.options.forEach((option, index) => {
         const renderedOption = renderLatexInHtml(option);
-        htmlContent += `<div class="question-option">${renderedOption}</div>`;
+        htmlContent += `<div class="question-option" style="margin-bottom: 4px; word-wrap: break-word;">${renderedOption}</div>`;
       });
     }
 
     htmlContent += '</div>';
 
-    // Canvas'a çevir
-    const canvas = await htmlToCanvas(htmlContent, 800, 600);
+    // Canvas'a çevir - 280px genişlik (250px + padding)
+    const canvas = await htmlToCanvas(htmlContent, 280, 400);
 
     // PNG olarak indir
     const link = document.createElement('a');
-    link.download = `soru-${questionNumber}-${question.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-')}.png`;
+    const fileName = `soru-${questionNumber}-${question.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-').substring(0, 30)}`;
+    link.download = `${fileName}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
     link.click();
 
@@ -238,7 +284,7 @@ export const exportAllQuestionsToImages = async (
     await exportQuestionToImage(question, i + 1, category, showOptions);
     
     // Tarayıcıyı bloke etmemek için kısa bir bekleme
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise(resolve => setTimeout(resolve, 800));
   }
   
   console.log('Tüm sorular başarıyla resim olarak kaydedildi!');

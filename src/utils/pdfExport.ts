@@ -2,17 +2,17 @@
 import jsPDF from 'jspdf';
 import { Test, Question, Category } from '@/types';
 
-// Math içeriğini daha iyi işlemek için geliştirilmiş fonksiyon
+// LaTeX ve matematik işaretlerini Unicode'a çeviren fonksiyon
 const processMathContent = (content: string): string => {
   return content
-    // LaTeX matematik ifadelerini daha okunabilir forma çevir
-    .replace(/\\\[([^\\]+)\\\]/g, '\n\n$1\n\n') // Display math
+    // LaTeX matematik ifadelerini temizle
+    .replace(/\\\[([^\\]+)\\\]/g, ' $1 ') // Display math
     .replace(/\\\(([^\\]+)\\\)/g, '$1') // Inline math
-    .replace(/\$\$([^$]+)\$\$/g, '\n\n$1\n\n') // Display math with $$
+    .replace(/\$\$([^$]+)\$\$/g, ' $1 ') // Display math with $$
     .replace(/\$([^$]+)\$/g, '$1') // Inline math with $
-    // Yaygın LaTeX komutlarını değiştir
-    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
+    // LaTeX komutlarını Unicode'a çevir
+    .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
     .replace(/\\times/g, '×')
     .replace(/\\div/g, '÷')
     .replace(/\\pm/g, '±')
@@ -34,8 +34,8 @@ const processMathContent = (content: string): string => {
     .replace(/\\geq/g, '≥')
     .replace(/\\neq/g, '≠')
     .replace(/\\approx/g, '≈')
-    .replace(/\^(\w+)/g, '⁽$1⁾') // Üst simge için basit çözüm
-    .replace(/\_(\w+)/g, '₍$1₎') // Alt simge için basit çözüm
+    .replace(/\^(\w+)/g, '⁽$1⁾')
+    .replace(/\_(\w+)/g, '₍$1₎')
     // HTML etiketlerini kaldır
     .replace(/<[^>]*>/g, '')
     // Fazla boşlukları temizle
@@ -45,8 +45,7 @@ const processMathContent = (content: string): string => {
 
 const createFallbackJSONExport = (
   test: Test,
-  testQuestions: Question[],
-  categories: Category[]
+  testQuestions: Question[]
 ) => {
   const exportData = {
     test: {
@@ -55,14 +54,11 @@ const createFallbackJSONExport = (
       createdAt: test.createdAt,
       settings: test.settings
     },
-    questions: testQuestions.map(q => ({
+    questions: testQuestions.map((q, index) => ({
+      number: index + 1,
       title: q.title,
       content: processMathContent(q.content),
-      originalContent: q.content,
-      categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
-      difficultyLevel: q.difficultyLevel,
-      grade: q.grade,
-      tags: q.tags
+      originalContent: q.content
     })),
     exportDate: new Date().toISOString(),
     note: "PDF oluşturulamadı, yedek JSON dosyası oluşturuldu"
@@ -94,19 +90,19 @@ export const exportTestToPDF = (
     const pageWidth = pdf.internal.pageSize.width;
     const pageHeight = pdf.internal.pageSize.height;
     const margin = 15;
-    const columnWidth = (pageWidth - 3 * margin) / 2; // İki sütun için genişlik
+    const columnWidth = (pageWidth - 3 * margin) / 2;
     const lineHeight = 5;
     let leftColumnY = 30;
     let rightColumnY = 30;
-    let currentColumn = 'left'; // 'left' veya 'right'
+    let currentColumn = 'left';
     
-    // PDF başlığı - ortalanmış
+    // PDF başlığı
     pdf.setFontSize(18);
     pdf.setFont(undefined, 'bold');
     const titleWidth = pdf.getTextWidth(test.title);
     pdf.text(test.title, (pageWidth - titleWidth) / 2, 20);
     
-    // Test açıklaması ve bilgileri - tek satırda
+    // Test açıklaması
     if (test.description) {
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
@@ -114,7 +110,7 @@ export const exportTestToPDF = (
       pdf.text(test.description, (pageWidth - descWidth) / 2, 26);
     }
     
-    // Test bilgileri
+    // Tarih ve soru sayısı
     pdf.setFontSize(9);
     pdf.setFont(undefined, 'normal');
     const testInfo = `Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')} | Soru Sayısı: ${testQuestions.length}`;
@@ -125,14 +121,13 @@ export const exportTestToPDF = (
     pdf.setDrawColor(200, 200, 200);
     pdf.line(pageWidth / 2, 35, pageWidth / 2, pageHeight - 20);
     
-    // Sorular - iki sütunlu düzen
+    // Sorular - sadece numara ve içerik
     testQuestions.forEach((question, index) => {
-      const categoryName = categories.find(c => c.id === question.categoryId)?.name || 'Bilinmeyen';
       const xPosition = currentColumn === 'left' ? margin : pageWidth / 2 + margin / 2;
       let yPosition = currentColumn === 'left' ? leftColumnY : rightColumnY;
       
       // Yeni sayfa kontrolü
-      if (yPosition > pageHeight - 60) {
+      if (yPosition > pageHeight - 40) {
         pdf.addPage();
         leftColumnY = 30;
         rightColumnY = 30;
@@ -144,41 +139,31 @@ export const exportTestToPDF = (
         pdf.line(pageWidth / 2, 20, pageWidth / 2, pageHeight - 20);
       }
       
-      // Soru numarası ve başlığı
-      pdf.setFontSize(11);
+      // Soru numarası
+      pdf.setFontSize(12);
       pdf.setFont(undefined, 'bold');
-      const questionTitle = `${index + 1}. ${question.title}`;
-      const titleLines = pdf.splitTextToSize(questionTitle, columnWidth - 5);
-      pdf.text(titleLines, xPosition, yPosition);
-      yPosition += titleLines.length * lineHeight + 2;
+      const questionNumber = `${index + 1}.`;
+      pdf.text(questionNumber, xPosition, yPosition);
+      yPosition += lineHeight + 2;
       
-      // Soru içeriği - matematik formüllerini işleyerek
+      // Soru başlığı (eğer varsa)
+      if (question.title) {
+        pdf.setFontSize(11);
+        pdf.setFont(undefined, 'bold');
+        const titleLines = pdf.splitTextToSize(question.title, columnWidth - 5);
+        pdf.text(titleLines, xPosition, yPosition);
+        yPosition += titleLines.length * lineHeight + 2;
+      }
+      
+      // Soru içeriği
       pdf.setFontSize(10);
       pdf.setFont(undefined, 'normal');
       const processedContent = processMathContent(question.content);
       const contentLines = pdf.splitTextToSize(processedContent, columnWidth - 5);
       pdf.text(contentLines, xPosition, yPosition);
-      yPosition += contentLines.length * lineHeight + 3;
+      yPosition += contentLines.length * lineHeight + 8; // Sorular arası boşluk
       
-      // Soru meta bilgileri
-      pdf.setFontSize(8);
-      pdf.setFont(undefined, 'italic');
-      const metaInfo = `${categoryName} | ${question.difficultyLevel} | ${question.grade}. Sınıf`;
-      const metaLines = pdf.splitTextToSize(metaInfo, columnWidth - 5);
-      pdf.text(metaLines, xPosition, yPosition);
-      yPosition += metaLines.length * lineHeight + 2;
-      
-      // Etiketler
-      if (question.tags.length > 0) {
-        const tagsText = `Etiketler: ${question.tags.join(', ')}`;
-        const tagsLines = pdf.splitTextToSize(tagsText, columnWidth - 5);
-        pdf.text(tagsLines, xPosition, yPosition);
-        yPosition += tagsLines.length * lineHeight + 2;
-      }
-      
-      yPosition += 8; // Sorular arası boşluk
-      
-      // Sütun değiştirme mantığı
+      // Sütun değiştirme
       if (currentColumn === 'left') {
         leftColumnY = yPosition;
         currentColumn = 'right';
@@ -188,7 +173,7 @@ export const exportTestToPDF = (
       }
     });
     
-    // Sayfa numaraları ekle
+    // Sayfa numaraları
     const pageCount = pdf.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       pdf.setPage(i);
@@ -205,6 +190,6 @@ export const exportTestToPDF = (
     
   } catch (error) {
     console.error('PDF oluşturulurken hata:', error);
-    createFallbackJSONExport(test, testQuestions, categories);
+    createFallbackJSONExport(test, testQuestions);
   }
 };

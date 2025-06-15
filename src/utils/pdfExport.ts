@@ -5,18 +5,19 @@ import { Test, Question, Category } from '@/types';
 // LaTeX ve matematik işaretlerini Unicode'a çeviren fonksiyon
 const processMathContent = (content: string): string => {
   return content
+    // HTML etiketlerini kaldır
+    .replace(/<[^>]*>/g, '')
     // LaTeX matematik ifadelerini temizle
-    .replace(/\\\[([^\\]+)\\\]/g, ' $1 ') // Display math
-    .replace(/\\\(([^\\]+)\\\)/g, '$1') // Inline math
-    .replace(/\$\$([^$]+)\$\$/g, ' $1 ') // Display math with $$
-    .replace(/\$([^$]+)\$/g, '$1') // Inline math with $
-    // LaTeX komutlarını Unicode'a çevir
-    .replace(/\\sqrt\{([^}]+)\}/g, '√$1')
-    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')
+    .replace(/\\\[([^\\]+)\\\]/g, ' $1 ')
+    .replace(/\\\(([^\\]+)\\\)/g, '$1')
+    .replace(/\$\$([^$]+)\$\$/g, ' $1 ')
+    .replace(/\$([^$]+)\$/g, '$1')
+    // Temel LaTeX komutlarını Unicode'a çevir
+    .replace(/\\sqrt\{([^}]+)\}/g, '√($1)')
+    .replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '($1)/($2)')
     .replace(/\\times/g, '×')
     .replace(/\\div/g, '÷')
     .replace(/\\pm/g, '±')
-    .replace(/\\cdot/g, '·')
     .replace(/\\pi/g, 'π')
     .replace(/\\alpha/g, 'α')
     .replace(/\\beta/g, 'β')
@@ -28,25 +29,21 @@ const processMathContent = (content: string): string => {
     .replace(/\\sigma/g, 'σ')
     .replace(/\\sum/g, '∑')
     .replace(/\\int/g, '∫')
-    .replace(/\\lim/g, 'lim')
     .replace(/\\infty/g, '∞')
     .replace(/\\leq/g, '≤')
     .replace(/\\geq/g, '≥')
     .replace(/\\neq/g, '≠')
     .replace(/\\approx/g, '≈')
-    .replace(/\^(\w+)/g, '⁽$1⁾')
-    .replace(/\_(\w+)/g, '₍$1₎')
-    // HTML etiketlerini kaldır
-    .replace(/<[^>]*>/g, '')
+    // Üst ve alt simgeler için basit çözüm
+    .replace(/\^(\w+)/g, '^$1')
+    .replace(/\_(\w+)/g, '_$1')
     // Fazla boşlukları temizle
     .replace(/\s+/g, ' ')
     .trim();
 };
 
-const createFallbackJSONExport = (
-  test: Test,
-  testQuestions: Question[]
-) => {
+// Yedek JSON export fonksiyonu
+const createFallbackJSONExport = (test: Test, testQuestions: Question[]) => {
   const exportData = {
     test: {
       title: test.title,
@@ -58,6 +55,7 @@ const createFallbackJSONExport = (
       number: index + 1,
       title: q.title,
       content: processMathContent(q.content),
+      options: test.settings.showOptions && q.options ? q.options : undefined,
       originalContent: q.content
     })),
     exportDate: new Date().toISOString(),
@@ -86,84 +84,122 @@ export const exportTestToPDF = (
   const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
   
   try {
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.width;
-    const pageHeight = pdf.internal.pageSize.height;
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+    
+    // Sayfa boyutları ve marjinler
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 15;
     const columnWidth = (pageWidth - 3 * margin) / 2;
-    const lineHeight = 5;
-    let leftColumnY = 30;
-    let rightColumnY = 30;
-    let currentColumn = 'left';
+    const lineHeight = 6;
+    
+    // Başlangıç pozisyonları
+    let leftColumnY = 35;
+    let rightColumnY = 35;
+    let currentColumn: 'left' | 'right' = 'left';
+    let currentPage = 1;
+    
+    // Font ayarları
+    pdf.setFont("helvetica");
     
     // PDF başlığı
-    pdf.setFontSize(18);
-    pdf.setFont(undefined, 'bold');
-    const titleWidth = pdf.getTextWidth(test.title);
-    pdf.text(test.title, (pageWidth - titleWidth) / 2, 20);
+    pdf.setFontSize(16);
+    pdf.setFont("helvetica", "bold");
+    const title = test.title;
+    const titleWidth = pdf.getTextWidth(title);
+    pdf.text(title, (pageWidth - titleWidth) / 2, 20);
     
-    // Test açıklaması
-    if (test.description) {
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
-      const descWidth = pdf.getTextWidth(test.description);
-      pdf.text(test.description, (pageWidth - descWidth) / 2, 26);
-    }
-    
-    // Tarih ve soru sayısı
+    // Test bilgileri
     pdf.setFontSize(9);
-    pdf.setFont(undefined, 'normal');
-    const testInfo = `Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')} | Soru Sayısı: ${testQuestions.length}`;
+    pdf.setFont("helvetica", "normal");
+    const testDate = new Date(test.createdAt).toLocaleDateString('tr-TR');
+    const testInfo = `Tarih: ${testDate} | Soru Sayısı: ${testQuestions.length}`;
     const infoWidth = pdf.getTextWidth(testInfo);
-    pdf.text(testInfo, (pageWidth - infoWidth) / 2, 32);
+    pdf.text(testInfo, (pageWidth - infoWidth) / 2, 28);
     
     // Sütun ayırıcı çizgi
     pdf.setDrawColor(200, 200, 200);
-    pdf.line(pageWidth / 2, 35, pageWidth / 2, pageHeight - 20);
+    pdf.line(pageWidth / 2, 32, pageWidth / 2, pageHeight - 15);
     
-    // Sorular - sadece numara ve içerik
+    // Sorular
     testQuestions.forEach((question, index) => {
-      const xPosition = currentColumn === 'left' ? margin : pageWidth / 2 + margin / 2;
+      const xPosition = currentColumn === 'left' ? margin : (pageWidth / 2) + (margin / 2);
       let yPosition = currentColumn === 'left' ? leftColumnY : rightColumnY;
       
       // Yeni sayfa kontrolü
-      if (yPosition > pageHeight - 40) {
+      if (yPosition > pageHeight - 50) {
         pdf.addPage();
-        leftColumnY = 30;
-        rightColumnY = 30;
-        yPosition = 30;
+        currentPage++;
+        leftColumnY = 25;
+        rightColumnY = 25;
+        yPosition = 25;
         currentColumn = 'left';
         
         // Yeni sayfada sütun ayırıcı çizgi
         pdf.setDrawColor(200, 200, 200);
-        pdf.line(pageWidth / 2, 20, pageWidth / 2, pageHeight - 20);
+        pdf.line(pageWidth / 2, 15, pageWidth / 2, pageHeight - 15);
       }
       
       // Soru numarası
-      pdf.setFontSize(12);
-      pdf.setFont(undefined, 'bold');
-      const questionNumber = `${index + 1}.`;
-      pdf.text(questionNumber, xPosition, yPosition);
+      pdf.setFontSize(11);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`${index + 1}.`, xPosition, yPosition);
       yPosition += lineHeight + 2;
       
-      // Soru başlığı (eğer varsa)
-      if (question.title) {
-        pdf.setFontSize(11);
-        pdf.setFont(undefined, 'bold');
-        const titleLines = pdf.splitTextToSize(question.title, columnWidth - 5);
+      // Soru başlığı
+      if (question.title && question.title.trim()) {
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "bold");
+        const titleText = question.title.substring(0, 100); // Uzun başlıkları kısalt
+        const titleLines = pdf.splitTextToSize(titleText, columnWidth - 10);
         pdf.text(titleLines, xPosition, yPosition);
         yPosition += titleLines.length * lineHeight + 2;
       }
       
       // Soru içeriği
-      pdf.setFontSize(10);
-      pdf.setFont(undefined, 'normal');
+      pdf.setFontSize(9);
+      pdf.setFont("helvetica", "normal");
       const processedContent = processMathContent(question.content);
-      const contentLines = pdf.splitTextToSize(processedContent, columnWidth - 5);
+      const contentText = processedContent.substring(0, 200); // İçeriği kısalt
+      const contentLines = pdf.splitTextToSize(contentText, columnWidth - 10);
       pdf.text(contentLines, xPosition, yPosition);
-      yPosition += contentLines.length * lineHeight + 8; // Sorular arası boşluk
+      yPosition += contentLines.length * lineHeight + 3;
       
-      // Sütun değiştirme
+      // Şıklar (eğer ayar açıksa ve şıklar varsa)
+      if (test.settings.showOptions && question.options && question.options.length > 0) {
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        
+        question.options.forEach((option, optionIndex) => {
+          if (yPosition > pageHeight - 30) {
+            // Şık için yeni sayfa gerekirse
+            pdf.addPage();
+            currentPage++;
+            leftColumnY = 25;
+            rightColumnY = 25;
+            yPosition = 25;
+            currentColumn = 'left';
+            
+            pdf.setDrawColor(200, 200, 200);
+            pdf.line(pageWidth / 2, 15, pageWidth / 2, pageHeight - 15);
+          }
+          
+          const optionLetter = String.fromCharCode(65 + optionIndex); // A, B, C, D
+          const optionText = `${optionLetter}) ${processMathContent(option).substring(0, 80)}`;
+          const optionLines = pdf.splitTextToSize(optionText, columnWidth - 15);
+          pdf.text(optionLines, xPosition + 5, yPosition);
+          yPosition += optionLines.length * (lineHeight - 1) + 1;
+        });
+        yPosition += 2; // Şıklar sonrası ek boşluk
+      }
+      
+      yPosition += 5; // Sorular arası boşluk
+      
+      // Sütun değiştir
       if (currentColumn === 'left') {
         leftColumnY = yPosition;
         currentColumn = 'right';
@@ -173,23 +209,26 @@ export const exportTestToPDF = (
       }
     });
     
-    // Sayfa numaraları
-    const pageCount = pdf.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+    // Sayfa numaraları ekle
+    const totalPages = pdf.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
       pdf.setFontSize(8);
-      pdf.setFont(undefined, 'normal');
-      const pageText = `Sayfa ${i} / ${pageCount}`;
+      pdf.setFont("helvetica", "normal");
+      const pageText = `${i} / ${totalPages}`;
       const pageTextWidth = pdf.getTextWidth(pageText);
-      pdf.text(pageText, (pageWidth - pageTextWidth) / 2, pageHeight - 10);
+      pdf.text(pageText, (pageWidth - pageTextWidth) / 2, pageHeight - 8);
     }
     
-    // Dosyayı indir
+    // Dosyayı kaydet
     const fileName = `test-${test.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-')}.pdf`;
     pdf.save(fileName);
     
+    console.log('PDF başarıyla oluşturuldu:', fileName);
+    
   } catch (error) {
     console.error('PDF oluşturulurken hata:', error);
+    console.log('Yedek JSON dosyası oluşturuluyor...');
     createFallbackJSONExport(test, testQuestions);
   }
 };

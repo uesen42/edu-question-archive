@@ -35,6 +35,7 @@ export function TestCreateDialog({
     selectedQuestionIds: [] as string[],
     showAnswers: false,
     randomizeOrder: false,
+    showOptions: true, // Yeni alan: şıkları göster
     timeLimit: ''
   });
 
@@ -71,6 +72,7 @@ export function TestCreateDialog({
         settings: {
           showAnswers: formData.showAnswers,
           randomizeOrder: formData.randomizeOrder,
+          showOptions: formData.showOptions, // Yeni ayar
           timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined
         }
       };
@@ -83,6 +85,7 @@ export function TestCreateDialog({
         selectedQuestionIds: [],
         showAnswers: false,
         randomizeOrder: false,
+        showOptions: true,
         timeLimit: ''
       });
     }
@@ -147,7 +150,7 @@ export function TestCreateDialog({
           <div className="space-y-4">
             <h3 className="font-semibold">Test Ayarları</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="showAnswers"
@@ -168,6 +171,17 @@ export function TestCreateDialog({
                   }
                 />
                 <Label htmlFor="randomizeOrder">Soruları karıştır</Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="showOptions"
+                  checked={formData.showOptions}
+                  onCheckedChange={(checked) => 
+                    setFormData(prev => ({ ...prev, showOptions: checked as boolean }))
+                  }
+                />
+                <Label htmlFor="showOptions">Şıkları göster</Label>
               </div>
 
               <div>

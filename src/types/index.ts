@@ -3,6 +3,7 @@ export interface Question {
   id: string;
   title: string;
   content: string; // HTML + KaTeX
+  options?: string[]; // Şıklar (opsiyonel)
   imageUrls: string[];
   categoryId: string;
   difficultyLevel: 'kolay' | 'orta' | 'zor';
@@ -29,6 +30,7 @@ export interface Test {
   settings: {
     showAnswers: boolean;
     randomizeOrder: boolean;
+    showOptions: boolean; // Şıkları göster/gizle ayarı
     timeLimit?: number;
   };
 }

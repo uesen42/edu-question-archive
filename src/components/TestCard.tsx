@@ -38,6 +38,11 @@ export function TestCard({ test, onView, onDownload }: TestCardProps) {
               Karışık sıra
             </Badge>
           )}
+          {test.settings.showOptions && (
+            <Badge variant="outline" className="text-xs">
+              Şıklı sorular
+            </Badge>
+          )}
           {test.settings.timeLimit && (
             <Badge variant="outline" className="text-xs">
               {test.settings.timeLimit} dk

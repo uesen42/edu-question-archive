@@ -75,6 +75,12 @@ export function TestViewDialog({
                       Karışık Sıra
                     </Badge>
                   )}
+                  {test.settings.showOptions && (
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      Şıklı Sorular
+                    </Badge>
+                  )}
                   {test.settings.timeLimit && (
                     <Badge variant="outline" className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />

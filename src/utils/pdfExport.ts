@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf';
 import { Test, Question, Category } from '@/types';
 import { renderQuestionToSVG } from './svgRenderer';
@@ -36,58 +35,58 @@ const createFallbackJSONExport = (test: Test, testQuestions: Question[]) => {
   URL.revokeObjectURL(url);
 };
 
-// SVG'yi PDF'e eklemek için yardımcı fonksiyon
-const addSVGToPDF = async (pdf: jsPDF, svgString: string, x: number, y: number, width: number, height: number): Promise<void> => {
+// SVG'yi yüksek kaliteli PNG'ye çeviren fonksiyon
+const svgToPNG = (svgString: string, width: number, height: number, scale: number = 2): Promise<string> => {
   return new Promise((resolve, reject) => {
     try {
-      // SVG string'i blob'a çevir
-      const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(svgBlob);
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
       
-      // Image oluştur
+      if (!ctx) {
+        reject(new Error('Canvas context oluşturulamadı'));
+        return;
+      }
+      
+      // Yüksek çözünürlük için scale faktörü
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      
+      // Canvas'ı temizle ve beyaz arka plan
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // SVG'yi image olarak yükle
       const img = new Image();
+      
       img.onload = () => {
         try {
-          // Canvas oluştur
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          if (!ctx) {
-            reject(new Error('Canvas context oluşturulamadı'));
-            return;
-          }
-          
-          // Canvas boyutlarını ayarla
-          canvas.width = width * 2; // Daha yüksek çözünürlük için
-          canvas.height = height * 2;
-          
-          // Arka planı beyaz yap
-          ctx.fillStyle = 'white';
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          // Anti-aliasing için smooth rendering
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
           
           // SVG'yi canvas'a çiz
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           
-          // Canvas'ı base64'e çevir
-          const imgData = canvas.toDataURL('image/png');
-          
-          // PDF'e ekle
-          pdf.addImage(imgData, 'PNG', x, y, width, height);
-          
-          URL.revokeObjectURL(url);
-          resolve();
+          // Yüksek kaliteli PNG olarak dönüştür
+          const dataURL = canvas.toDataURL('image/png', 1.0);
+          resolve(dataURL);
         } catch (error) {
-          URL.revokeObjectURL(url);
           reject(error);
         }
       };
       
       img.onerror = () => {
-        URL.revokeObjectURL(url);
         reject(new Error('SVG yükleme hatası'));
       };
       
+      // SVG'yi data URL olarak ayarla
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
       img.src = url;
+      
+      // Memory leak önlemek için cleanup
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      
     } catch (error) {
       reject(error);
     }
@@ -115,25 +114,26 @@ export const exportTestToPDF = async (
     const pageHeight = pdf.internal.pageSize.getHeight();
     const margin = 15;
     const columnWidth = (pageWidth - 3 * margin) / 2;
-    const maxQuestionHeight = 80; // Her soru için maksimum yükseklik
+    const maxQuestionHeightMM = 80;
     
-    // PDF başlığı
+    // PDF başlığı (daha kaliteli)
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
+    pdf.setFontSize(18);
     const title = test.title;
     const titleWidth = pdf.getTextWidth(title);
     pdf.text(title, (pageWidth - titleWidth) / 2, 20);
     
     // Test bilgileri
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
+    pdf.setFontSize(11);
     const testDate = new Date(test.createdAt).toLocaleDateString('tr-TR');
     const testInfo = `Tarih: ${testDate} | Soru Sayısı: ${testQuestions.length}`;
     const infoWidth = pdf.getTextWidth(testInfo);
-    pdf.text(testInfo, (pageWidth - infoWidth) / 2, 28);
+    pdf.text(testInfo, (pageWidth - infoWidth) / 2, 30);
     
     // Sütun ayırıcı çizgi
-    pdf.setDrawColor(200, 200, 200);
+    pdf.setDrawColor(180, 180, 180);
+    pdf.setLineWidth(0.5);
     pdf.line(pageWidth / 2, 35, pageWidth / 2, pageHeight - 15);
     
     // Başlangıç pozisyonları
@@ -143,18 +143,21 @@ export const exportTestToPDF = async (
     
     console.log(`${testQuestions.length} soru işlenecek...`);
     
-    // Her soru için SVG oluştur ve PDF'e ekle
+    // Her soru için yüksek kaliteli SVG oluştur ve PDF'e ekle
     for (let i = 0; i < testQuestions.length; i++) {
       const question = testQuestions[i];
       console.log(`Soru ${i + 1} işleniyor...`);
       
-      // SVG oluştur
+      // Yüksek çözünürlüklü SVG oluştur
+      const svgWidth = columnWidth * 3.78; // mm to px
+      const svgHeight = maxQuestionHeightMM * 3.78;
+      
       const svgString = renderQuestionToSVG(
         question, 
         i + 1, 
         test.settings.showOptions,
-        columnWidth * 3.78, // mm to px conversion
-        maxQuestionHeight * 3.78
+        svgWidth,
+        svgHeight
       );
       
       // Kolon pozisyonunu belirle
@@ -162,7 +165,7 @@ export const exportTestToPDF = async (
       let yPosition = currentColumn === 'left' ? leftColumnY : rightColumnY;
       
       // Yeni sayfa kontrolü
-      if (yPosition + maxQuestionHeight > pageHeight - 20) {
+      if (yPosition + maxQuestionHeightMM > pageHeight - 20) {
         pdf.addPage();
         leftColumnY = 25;
         rightColumnY = 25;
@@ -170,35 +173,64 @@ export const exportTestToPDF = async (
         currentColumn = 'left';
         
         // Yeni sayfada sütun ayırıcı çizgi
-        pdf.setDrawColor(200, 200, 200);
+        pdf.setDrawColor(180, 180, 180);
+        pdf.setLineWidth(0.5);
         pdf.line(pageWidth / 2, 15, pageWidth / 2, pageHeight - 15);
       }
       
       try {
-        // SVG'yi PDF'e ekle
-        await addSVGToPDF(pdf, svgString, xPosition, yPosition, columnWidth, maxQuestionHeight);
+        // SVG'yi yüksek kaliteli PNG'ye çevir
+        const pngDataURL = await svgToPNG(svgString, svgWidth, svgHeight, 2);
+        
+        // PNG'yi PDF'e ekle
+        pdf.addImage(
+          pngDataURL, 
+          'PNG', 
+          xPosition, 
+          yPosition, 
+          columnWidth, 
+          maxQuestionHeightMM,
+          undefined,
+          'FAST' // Compression
+        );
+        
         console.log(`Soru ${i + 1} başarıyla eklendi`);
       } catch (svgError) {
         console.warn(`Soru ${i + 1} SVG olarak eklenemedi, metin olarak eklenecek:`, svgError);
         
         // SVG eklenemezse basit metin olarak ekle
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(10);
+        pdf.setFontSize(12);
         const questionTitle = `${i + 1}. ${question.title || 'Soru'}`;
-        pdf.text(questionTitle, xPosition, yPosition + 5);
+        pdf.text(questionTitle, xPosition, yPosition + 8);
         
         pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(9);
-        const contentLines = pdf.splitTextToSize(question.content.replace(/<[^>]*>/g, ''), columnWidth - 5);
-        pdf.text(contentLines, xPosition, yPosition + 15);
+        pdf.setFontSize(10);
+        const contentLines = pdf.splitTextToSize(
+          question.content.replace(/<[^>]*>/g, ''), 
+          columnWidth - 5
+        );
+        pdf.text(contentLines, xPosition, yPosition + 18);
+        
+        // Şıkları da ekle
+        if (test.settings.showOptions && question.options) {
+          let optionY = yPosition + 18 + (contentLines.length * 4) + 5;
+          question.options.forEach((option, optIndex) => {
+            const optionLetter = String.fromCharCode(65 + optIndex);
+            const optionText = `${optionLetter}) ${option.replace(/<[^>]*>/g, '')}`;
+            const optionLines = pdf.splitTextToSize(optionText, columnWidth - 10);
+            pdf.text(optionLines, xPosition + 5, optionY);
+            optionY += optionLines.length * 4 + 2;
+          });
+        }
       }
       
       // Sütun değiştir
       if (currentColumn === 'left') {
-        leftColumnY = yPosition + maxQuestionHeight + 10;
+        leftColumnY = yPosition + maxQuestionHeightMM + 10;
         currentColumn = 'right';
       } else {
-        rightColumnY = yPosition + maxQuestionHeight + 10;
+        rightColumnY = yPosition + maxQuestionHeightMM + 10;
         currentColumn = 'left';
       }
     }
@@ -208,7 +240,7 @@ export const exportTestToPDF = async (
     for (let i = 1; i <= totalPages; i++) {
       pdf.setPage(i);
       pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(8);
+      pdf.setFontSize(9);
       const pageText = `${i} / ${totalPages}`;
       const pageTextWidth = pdf.getTextWidth(pageText);
       pdf.text(pageText, (pageWidth - pageTextWidth) / 2, pageHeight - 8);

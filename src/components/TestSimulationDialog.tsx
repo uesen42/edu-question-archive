@@ -125,7 +125,7 @@ export function TestSimulationDialog({
                     <span>{i+1}.</span>
                     <span>{q.title}</span>
                     {typeof q.correctAnswer === "number" && (
-                      <Badge variant={answers[q.id] === q.correctAnswer ? "success" : "destructive"} className="ml-2">
+                      <Badge variant={answers[q.id] === q.correctAnswer ? "secondary" : "destructive"} className="ml-2">
                         {answers[q.id] === q.correctAnswer ? "Doğru" : "Yanlış"} 
                       </Badge>
                     )}

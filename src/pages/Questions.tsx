@@ -22,9 +22,9 @@ export default function Questions() {
   } = useQuestionStore();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('');
-  const [selectedGrade, setSelectedGrade] = useState<string>('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [selectedGrade, setSelectedGrade] = useState<string>('all');
 
   useEffect(() => {
     loadQuestions();
@@ -34,9 +34,9 @@ export default function Questions() {
   useEffect(() => {
     setFilter({
       search: searchTerm,
-      categoryId: selectedCategory || undefined,
-      difficultyLevel: selectedDifficulty || undefined,
-      grade: selectedGrade ? parseInt(selectedGrade) : undefined,
+      categoryId: selectedCategory === 'all' ? undefined : selectedCategory,
+      difficultyLevel: selectedDifficulty === 'all' ? undefined : selectedDifficulty,
+      grade: selectedGrade === 'all' ? undefined : parseInt(selectedGrade),
     });
   }, [searchTerm, selectedCategory, selectedDifficulty, selectedGrade, setFilter]);
 
@@ -102,7 +102,7 @@ export default function Questions() {
               <SelectValue placeholder="Kategori seç" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tüm Kategoriler</SelectItem>
+              <SelectItem value="all">Tüm Kategoriler</SelectItem>
               {categories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
                   {category.name}
@@ -116,7 +116,7 @@ export default function Questions() {
               <SelectValue placeholder="Zorluk seç" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tüm Seviyeler</SelectItem>
+              <SelectItem value="all">Tüm Seviyeler</SelectItem>
               <SelectItem value="kolay">Kolay</SelectItem>
               <SelectItem value="orta">Orta</SelectItem>
               <SelectItem value="zor">Zor</SelectItem>
@@ -128,7 +128,7 @@ export default function Questions() {
               <SelectValue placeholder="Sınıf seç" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Tüm Sınıflar</SelectItem>
+              <SelectItem value="all">Tüm Sınıflar</SelectItem>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
                 <SelectItem key={grade} value={grade.toString()}>
                   {grade}. Sınıf

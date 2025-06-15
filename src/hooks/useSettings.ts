@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuestionStore } from '@/store/questionStore';
@@ -53,6 +52,15 @@ export function useSettings() {
 
   const exportData = () => {
     try {
+      // localStorage'dan direkt veri çek
+      const questionsData = localStorage.getItem('questions');
+      const categoriesData = localStorage.getItem('categories');
+      const testsData = localStorage.getItem('tests');
+      
+      const questions = questionsData ? JSON.parse(questionsData) : [];
+      const categories = categoriesData ? JSON.parse(categoriesData) : [];
+      const tests = testsData ? JSON.parse(testsData) : [];
+      
       const data = {
         exportDate: new Date().toISOString(),
         version: '1.0.0',

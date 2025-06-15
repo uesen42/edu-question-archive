@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { TestCreateDialog } from '@/components/TestCreateDialog';
 import { TestViewDialog } from '@/components/TestViewDialog';
 import { useQuestionStore } from '@/store/questionStore';
 import { Test } from '@/types';
+import jsPDF from 'jspdf';
 
 export default function Tests() {
   const [isTestCreateOpen, setIsTestCreateOpen] = useState(false);
@@ -41,36 +41,93 @@ export default function Tests() {
   const handleDownloadTest = (test: Test) => {
     const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
     
-    const exportData = {
-      test: {
-        title: test.title,
-        description: test.description,
-        createdAt: test.createdAt,
-        settings: test.settings
-      },
-      questions: testQuestions.map(q => ({
-        title: q.title,
-        content: q.content,
-        categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
-        difficultyLevel: q.difficultyLevel,
-        grade: q.grade,
-        tags: q.tags
-      })),
-      exportDate: new Date().toISOString()
-    };
+    try {
+      const pdf = new jsPDF();
+      let yPosition = 20;
+      
+      // PDF başlığı
+      pdf.setFontSize(18);
+      pdf.text(test.title, 20, yPosition);
+      yPosition += 15;
+      
+      if (test.description) {
+        pdf.setFontSize(12);
+        pdf.text(test.description, 20, yPosition);
+        yPosition += 10;
+      }
+      
+      // Test bilgileri
+      pdf.setFontSize(10);
+      pdf.text(`Tarih: ${new Date(test.createdAt).toLocaleDateString('tr-TR')}`, 20, yPosition);
+      pdf.text(`Soru Sayısı: ${testQuestions.length}`, 120, yPosition);
+      yPosition += 15;
+      
+      // Sorular
+      pdf.setFontSize(12);
+      testQuestions.forEach((question, index) => {
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        const categoryName = categories.find(c => c.id === question.categoryId)?.name || 'Bilinmeyen';
+        
+        // Soru başlığı
+        pdf.setFont(undefined, 'bold');
+        pdf.text(`${index + 1}. ${question.title}`, 20, yPosition);
+        yPosition += 8;
+        
+        // Soru içeriği (LaTeX formülleri basit metin olarak)
+        pdf.setFont(undefined, 'normal');
+        const cleanContent = question.content.replace(/\$\$?([^$]+)\$\$?/g, '$1');
+        const lines = pdf.splitTextToSize(cleanContent, 170);
+        pdf.text(lines, 20, yPosition);
+        yPosition += lines.length * 5 + 5;
+        
+        // Soru bilgileri
+        pdf.setFontSize(9);
+        pdf.text(`Kategori: ${categoryName} | Zorluk: ${question.difficultyLevel} | Sınıf: ${question.grade}`, 20, yPosition);
+        yPosition += 10;
+        
+        pdf.setFontSize(12);
+      });
+      
+      pdf.save(`test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`);
+      
+    } catch (error) {
+      console.error('PDF oluşturulurken hata:', error);
+      // Fallback olarak JSON indir
+      const exportData = {
+        test: {
+          title: test.title,
+          description: test.description,
+          createdAt: test.createdAt,
+          settings: test.settings
+        },
+        questions: testQuestions.map(q => ({
+          title: q.title,
+          content: q.content,
+          categoryName: categories.find(c => c.id === q.categoryId)?.name || 'Bilinmeyen',
+          difficultyLevel: q.difficultyLevel,
+          grade: q.grade,
+          tags: q.tags
+        })),
+        exportDate: new Date().toISOString()
+      };
 
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+        type: 'application/json',
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-${test.title.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
   };
 
   return (

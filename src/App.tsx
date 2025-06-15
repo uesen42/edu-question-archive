@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import NotFound from "./pages/NotFound";
 
 // Lazy load page components
@@ -28,59 +29,73 @@ const PageLoader = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route 
-              index 
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <Dashboard />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="questions" 
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <Questions />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="tests" 
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <Tests />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="categories" 
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <Categories />
-                </Suspense>
-              } 
-            />
-            <Route 
-              path="settings" 
-              element={
-                <Suspense fallback={<PageLoader />}>
-                  <Settings />
-                </Suspense>
-              } 
-            />
-          </Route>
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route 
+                  index 
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        <Dashboard />
+                      </Suspense>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="questions" 
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        <Questions />
+                      </Suspense>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="tests" 
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        <Tests />
+                      </Suspense>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="categories" 
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        <Categories />
+                      </Suspense>
+                    </ErrorBoundary>
+                  } 
+                />
+                <Route 
+                  path="settings" 
+                  element={
+                    <ErrorBoundary>
+                      <Suspense fallback={<PageLoader />}>
+                        <Settings />
+                      </Suspense>
+                    </ErrorBoundary>
+                  } 
+                />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </ErrorBoundary>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

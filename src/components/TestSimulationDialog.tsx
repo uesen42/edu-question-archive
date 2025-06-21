@@ -14,6 +14,8 @@ interface TestSimulationDialogProps {
   categories: Category[];
 }
 
+type StepType = "solve" | "result";
+
 // Yardımcı: mm:ss format
 function formatTimeLeft(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -30,7 +32,7 @@ export function TestSimulationDialog({
 }: TestSimulationDialogProps) {
   if (!open || !test) return null;
 
-  const [step, setStep] = useState<"solve" | "result">("solve");
+  const [step, setStep] = useState<StepType>("solve");
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [timeLeft, setTimeLeft] = useState<number | null>(null); // Saniye olarak
   const timerRef = useRef<NodeJS.Timeout | null>(null);

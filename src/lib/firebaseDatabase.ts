@@ -9,7 +9,8 @@ import {
   getDoc,
   query,
   where,
-  orderBy
+  orderBy,
+  setDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { Question, Category, Test } from '@/types';
@@ -18,7 +19,9 @@ export class FirebaseDatabase {
   // Questions Collection
   async addQuestion(question: Question): Promise<void> {
     try {
-      await addDoc(collection(db, 'questions'), question);
+      const docRef = doc(collection(db, 'questions'));
+      const questionWithId = { ...question, id: docRef.id };
+      await setDoc(docRef, questionWithId);
     } catch (error) {
       console.error('Error adding question:', error);
       throw error;
@@ -42,7 +45,14 @@ export class FirebaseDatabase {
   async updateQuestion(question: Question): Promise<void> {
     try {
       const questionRef = doc(db, 'questions', question.id);
-      await updateDoc(questionRef, { ...question });
+      // Check if document exists first
+      const docSnap = await getDoc(questionRef);
+      if (docSnap.exists()) {
+        await updateDoc(questionRef, { ...question });
+      } else {
+        // If document doesn't exist, create it
+        await setDoc(questionRef, question);
+      }
     } catch (error) {
       console.error('Error updating question:', error);
       throw error;
@@ -61,7 +71,9 @@ export class FirebaseDatabase {
   // Categories Collection
   async addCategory(category: Category): Promise<void> {
     try {
-      await addDoc(collection(db, 'categories'), category);
+      const docRef = doc(collection(db, 'categories'));
+      const categoryWithId = { ...category, id: docRef.id };
+      await setDoc(docRef, categoryWithId);
     } catch (error) {
       console.error('Error adding category:', error);
       throw error;
@@ -85,7 +97,12 @@ export class FirebaseDatabase {
   async updateCategory(category: Category): Promise<void> {
     try {
       const categoryRef = doc(db, 'categories', category.id);
-      await updateDoc(categoryRef, { ...category });
+      const docSnap = await getDoc(categoryRef);
+      if (docSnap.exists()) {
+        await updateDoc(categoryRef, { ...category });
+      } else {
+        await setDoc(categoryRef, category);
+      }
     } catch (error) {
       console.error('Error updating category:', error);
       throw error;
@@ -104,7 +121,9 @@ export class FirebaseDatabase {
   // Tests Collection
   async addTest(test: Test): Promise<void> {
     try {
-      await addDoc(collection(db, 'tests'), test);
+      const docRef = doc(collection(db, 'tests'));
+      const testWithId = { ...test, id: docRef.id };
+      await setDoc(docRef, testWithId);
     } catch (error) {
       console.error('Error adding test:', error);
       throw error;
@@ -128,7 +147,12 @@ export class FirebaseDatabase {
   async updateTest(test: Test): Promise<void> {
     try {
       const testRef = doc(db, 'tests', test.id);
-      await updateDoc(testRef, { ...test });
+      const docSnap = await getDoc(testRef);
+      if (docSnap.exists()) {
+        await updateDoc(testRef, { ...test });
+      } else {
+        await setDoc(testRef, test);
+      }
     } catch (error) {
       console.error('Error updating test:', error);
       throw error;

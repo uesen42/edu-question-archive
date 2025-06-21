@@ -72,8 +72,10 @@ export function TestCreateDialog({
         settings: {
           showAnswers: formData.showAnswers,
           randomizeOrder: formData.randomizeOrder,
-          showOptions: formData.showOptions, // Yeni ayar
-          timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined
+          showOptions: formData.showOptions,
+          // Only include timeLimit if it has a valid value
+          ...(formData.timeLimit && !isNaN(parseInt(formData.timeLimit)) ? 
+            { timeLimit: parseInt(formData.timeLimit) } : {})
         }
       };
       onSave(testData);

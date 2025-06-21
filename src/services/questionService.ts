@@ -1,6 +1,8 @@
 
 import { Question } from '@/types';
 import { db } from '@/lib/database';
+import { addDoc, collection } from 'firebase/firestore';
+import { db as firebaseDb } from '@/lib/firebase';
 
 export class QuestionService {
   static async getAll(): Promise<Question[]> {
@@ -21,8 +23,9 @@ export class QuestionService {
     };
     
     try {
-      await db.addQuestion(question);
-      return question;
+      // Firebase'e ekle
+      const docRef = await addDoc(collection(firebaseDb, 'questions'), question);
+      return { ...question, id: docRef.id };
     } catch (error) {
       console.error('Failed to add question:', error);
       throw error;

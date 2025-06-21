@@ -1,6 +1,8 @@
 
 import { Test } from '@/types';
 import { db } from '@/lib/database';
+import { addDoc, collection } from 'firebase/firestore';
+import { db as firebaseDb } from '@/lib/firebase';
 
 export class TestService {
   static async getAll(): Promise<Test[]> {
@@ -20,8 +22,9 @@ export class TestService {
     };
     
     try {
-      await db.addTest(test);
-      return test;
+      // Firebase'e ekle
+      const docRef = await addDoc(collection(firebaseDb, 'tests'), test);
+      return { ...test, id: docRef.id };
     } catch (error) {
       console.error('Failed to add test:', error);
       throw error;

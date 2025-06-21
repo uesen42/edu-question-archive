@@ -1,5 +1,6 @@
 
 import { Question, Category, Test } from '@/types';
+import { firebaseDb } from './firebaseDatabase';
 
 const DB_NAME = 'QuestionBankDB';
 const DB_VERSION = 1;
@@ -8,127 +9,59 @@ class DatabaseManager {
   private db: IDBDatabase | null = null;
 
   async init(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        this.db = request.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-
-        // Questions store
-        if (!db.objectStoreNames.contains('questions')) {
-          const questionStore = db.createObjectStore('questions', { keyPath: 'id' });
-          questionStore.createIndex('categoryId', 'categoryId', { unique: false });
-          questionStore.createIndex('difficultyLevel', 'difficultyLevel', { unique: false });
-          questionStore.createIndex('grade', 'grade', { unique: false });
-        }
-
-        // Categories store
-        if (!db.objectStoreNames.contains('categories')) {
-          db.createObjectStore('categories', { keyPath: 'id' });
-        }
-
-        // Tests store
-        if (!db.objectStoreNames.contains('tests')) {
-          db.createObjectStore('tests', { keyPath: 'id' });
-        }
-      };
-    });
+    // Firebase veritabanını başlat
+    return firebaseDb.init();
   }
 
-  // Question CRUD operations
+  // Question CRUD operations - Firebase'e yönlendir
   async addQuestion(question: Question): Promise<void> {
-    const transaction = this.db!.transaction(['questions'], 'readwrite');
-    const store = transaction.objectStore('questions');
-    await store.add(question);
+    return firebaseDb.addQuestion(question);
   }
 
   async getQuestions(): Promise<Question[]> {
-    const transaction = this.db!.transaction(['questions'], 'readonly');
-    const store = transaction.objectStore('questions');
-    const request = store.getAll();
-    
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return firebaseDb.getQuestions();
   }
 
   async updateQuestion(question: Question): Promise<void> {
-    const transaction = this.db!.transaction(['questions'], 'readwrite');
-    const store = transaction.objectStore('questions');
-    await store.put(question);
+    return firebaseDb.updateQuestion(question);
   }
 
   async deleteQuestion(id: string): Promise<void> {
-    const transaction = this.db!.transaction(['questions'], 'readwrite');
-    const store = transaction.objectStore('questions');
-    await store.delete(id);
+    return firebaseDb.deleteQuestion(id);
   }
 
-  // Category CRUD operations
+  // Category CRUD operations - Firebase'e yönlendir
   async addCategory(category: Category): Promise<void> {
-    const transaction = this.db!.transaction(['categories'], 'readwrite');
-    const store = transaction.objectStore('categories');
-    await store.add(category);
+    return firebaseDb.addCategory(category);
   }
 
   async getCategories(): Promise<Category[]> {
-    const transaction = this.db!.transaction(['categories'], 'readonly');
-    const store = transaction.objectStore('categories');
-    const request = store.getAll();
-    
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return firebaseDb.getCategories();
   }
 
   async updateCategory(category: Category): Promise<void> {
-    const transaction = this.db!.transaction(['categories'], 'readwrite');
-    const store = transaction.objectStore('categories');
-    await store.put(category);
+    return firebaseDb.updateCategory(category);
   }
 
   async deleteCategory(id: string): Promise<void> {
-    const transaction = this.db!.transaction(['categories'], 'readwrite');
-    const store = transaction.objectStore('categories');
-    await store.delete(id);
+    return firebaseDb.deleteCategory(id);
   }
 
-  // Test CRUD operations
+  // Test CRUD operations - Firebase'e yönlendir
   async addTest(test: Test): Promise<void> {
-    const transaction = this.db!.transaction(['tests'], 'readwrite');
-    const store = transaction.objectStore('tests');
-    await store.add(test);
+    return firebaseDb.addTest(test);
   }
 
   async getTests(): Promise<Test[]> {
-    const transaction = this.db!.transaction(['tests'], 'readonly');
-    const store = transaction.objectStore('tests');
-    const request = store.getAll();
-    
-    return new Promise((resolve, reject) => {
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
+    return firebaseDb.getTests();
   }
 
   async updateTest(test: Test): Promise<void> {
-    const transaction = this.db!.transaction(['tests'], 'readwrite');
-    const store = transaction.objectStore('tests');
-    await store.put(test);
+    return firebaseDb.updateTest(test);
   }
 
   async deleteTest(id: string): Promise<void> {
-    const transaction = this.db!.transaction(['tests'], 'readwrite');
-    const store = transaction.objectStore('tests');
-    await store.delete(id);
+    return firebaseDb.deleteTest(id);
   }
 }
 

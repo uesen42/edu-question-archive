@@ -1,8 +1,6 @@
 
 import { Category } from '@/types';
 import { db } from '@/lib/database';
-import { addDoc, collection } from 'firebase/firestore';
-import { db as firebaseDb } from '@/lib/firebase';
 
 export class CategoryService {
   static async getAll(): Promise<Category[]> {
@@ -22,9 +20,8 @@ export class CategoryService {
     };
     
     try {
-      // Firebase'e ekle
-      const docRef = await addDoc(collection(firebaseDb, 'categories'), category);
-      return { ...category, id: docRef.id };
+      await db.addCategory(category);
+      return category;
     } catch (error) {
       console.error('Failed to add category:', error);
       throw error;

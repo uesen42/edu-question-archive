@@ -4,13 +4,37 @@ import katex from 'katex';
 import html2pdf from 'html2pdf.js';
 
 /**
+ * Türkçe karakterleri LaTeX uyumlu hale getirir
+ */
+function sanitizeTurkishChars(text: string): string {
+  return text
+    .replace(/ş/g, '\\text{ş}')
+    .replace(/Ş/g, '\\text{Ş}')
+    .replace(/ğ/g, '\\text{ğ}')
+    .replace(/Ğ/g, '\\text{Ğ}')
+    .replace(/ı/g, '\\text{ı}')
+    .replace(/İ/g, '\\text{İ}')
+    .replace(/ö/g, '\\text{ö}')
+    .replace(/Ö/g, '\\text{Ö}')
+    .replace(/ü/g, '\\text{ü}')
+    .replace(/Ü/g, '\\text{Ü}')
+    .replace(/ç/g, '\\text{ç}')
+    .replace(/Ç/g, '\\text{Ç}');
+}
+
+/**
  * Metindeki $...$ ve $$...$$ ifadelerini KaTeX ile çevirir.
  */
 function renderMathInText(text: string): string {
   // Block math ($$...$$)
   text = text.replace(/\$\$([^$]+)\$\$/g, (_, expr) => {
     try {
-      return katex.renderToString(expr.trim(), { displayMode: true });
+      const sanitizedExpr = sanitizeTurkishChars(expr.trim());
+      return katex.renderToString(sanitizedExpr, { 
+        displayMode: true,
+        strict: false,
+        trust: true
+      });
     } catch {
       return `$$${expr}$$`;
     }
@@ -19,7 +43,12 @@ function renderMathInText(text: string): string {
   // Inline math ($...$)
   text = text.replace(/\$([^$]+)\$/g, (_, expr) => {
     try {
-      return katex.renderToString(expr.trim(), { displayMode: false });
+      const sanitizedExpr = sanitizeTurkishChars(expr.trim());
+      return katex.renderToString(sanitizedExpr, { 
+        displayMode: false,
+        strict: false,
+        trust: true
+      });
     } catch {
       return `$${expr}$`;
     }

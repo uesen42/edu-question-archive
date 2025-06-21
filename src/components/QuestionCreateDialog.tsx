@@ -5,11 +5,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Upload, Image as ImageIcon } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { LaTeXEditor } from './LaTeXEditor';
 
 interface QuestionCreateDialogProps {
   categories: Category[];
@@ -32,7 +32,9 @@ export function QuestionCreateDialog({
     grade: 1,
     tags: [] as string[],
     newTag: '',
-    imageUrls: [] as string[]
+    imageUrls: [] as string[],
+    options: [] as string[],
+    newOption: ''
   });
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -41,7 +43,6 @@ export function QuestionCreateDialog({
     },
     maxFiles: 5,
     onDrop: (acceptedFiles) => {
-      // Dosyaları URL'lere dönüştür (gerçek uygulamada bunlar sunucuya yüklenir)
       acceptedFiles.forEach((file) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -79,6 +80,23 @@ export function QuestionCreateDialog({
     }));
   };
 
+  const handleAddOption = () => {
+    if (formData.newOption.trim() && formData.options.length < 6) {
+      setFormData(prev => ({
+        ...prev,
+        options: [...prev.options, prev.newOption.trim()],
+        newOption: ''
+      }));
+    }
+  };
+
+  const handleRemoveOption = (indexToRemove: number) => {
+    setFormData(prev => ({
+      ...prev,
+      options: prev.options.filter((_, index) => index !== indexToRemove)
+    }));
+  };
+
   const handleSave = () => {
     if (formData.title.trim() && formData.content.trim() && formData.categoryId) {
       const questionData = {
@@ -89,6 +107,7 @@ export function QuestionCreateDialog({
         grade: formData.grade,
         tags: formData.tags,
         imageUrls: formData.imageUrls,
+        options: formData.options.length > 0 ? formData.options : undefined,
         isFavorite: false,
         viewCount: 0
       };
@@ -103,7 +122,9 @@ export function QuestionCreateDialog({
         grade: 1,
         tags: [],
         newTag: '',
-        imageUrls: []
+        imageUrls: [],
+        options: [],
+        newOption: ''
       });
       
       onOpenChange(false);
@@ -112,12 +133,12 @@ export function QuestionCreateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Yeni Soru Ekle</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Başlık */}
           <div>
             <Label htmlFor="title">Soru Başlığı *</Label>
@@ -129,16 +150,62 @@ export function QuestionCreateDialog({
             />
           </div>
 
-          {/* İçerik */}
+          {/* İçerik - LaTeX Editor */}
           <div>
-            <Label htmlFor="content">Soru İçeriği *</Label>
-            <Textarea
-              id="content"
+            <Label>Soru İçeriği *</Label>
+            <LaTeXEditor
               value={formData.content}
-              onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
-              placeholder="Soru içeriğini girin... (LaTeX için $ işareti kullanabilirsiniz)"
-              rows={4}
+              onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+              placeholder="Soru içeriğini girin... LaTeX formüller için $ veya $$ kullanın"
             />
+          </div>
+
+          {/* Seçenekler */}
+          <div>
+            <Label>Seçenekler (Opsiyonel)</Label>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <LaTeXEditor
+                    value={formData.newOption}
+                    onChange={(newOption) => setFormData(prev => ({ ...prev, newOption }))}
+                    placeholder="Yeni seçenek ekle... (LaTeX desteklenir)"
+                  />
+                </div>
+                <Button 
+                  type="button" 
+                  onClick={handleAddOption} 
+                  variant="outline"
+                  disabled={formData.options.length >= 6}
+                  className="self-start mt-2"
+                >
+                  Ekle
+                </Button>
+              </div>
+              
+              {formData.options.length > 0 && (
+                <div className="space-y-2">
+                  {formData.options.map((option, index) => (
+                    <div key={index} className="flex items-center gap-2 p-3 border rounded-lg">
+                      <span className="font-medium text-sm w-8">
+                        {String.fromCharCode(65 + index)})
+                      </span>
+                      <div className="flex-1">
+                        <LaTeXEditor value={option} onChange={() => {}} />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveOption(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Resim Yükleme */}

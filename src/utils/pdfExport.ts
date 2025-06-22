@@ -53,4 +53,4 @@ export const exportTestToPDF = async (
   }
 };
 
-export { PDFExportSettings, defaultPDFSettings } from './modernPdfExport';
+export type { PDFExportSettings, defaultPDFSettings } from './modernPdfExport';

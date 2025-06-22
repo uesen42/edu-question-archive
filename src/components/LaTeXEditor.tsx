@@ -78,7 +78,7 @@ export function LaTeXEditor({ value, onChange, placeholder }: LaTeXEditorProps) 
               className="font-mono"
             />
             <p className="text-xs text-gray-500">
-              İpucu: Inline matematik için $x^2$ veya blok matematik için $$\\frac{a}{b}$$ kullanın
+              İpucu: Inline matematik için $x^2$ veya blok matematik için $$\\frac{'{a}'}{'{b}'}$$ kullanın
             </p>
           </div>
 

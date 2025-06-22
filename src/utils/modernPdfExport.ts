@@ -1,3 +1,4 @@
+
 import { Test, Question, Category } from '@/types';
 import katex from 'katex';
 import html2pdf from 'html2pdf.js';
@@ -7,18 +8,18 @@ import html2pdf from 'html2pdf.js';
  */
 function sanitizeTurkishChars(text: string): string {
   return text
-    .replace(/ş/g, '\\text{ş}')
-    .replace(/Ş/g, '\\text{Ş}')
-    .replace(/ğ/g, '\\text{ğ}')
-    .replace(/Ğ/g, '\\text{Ğ}')
-    .replace(/ı/g, '\\text{ı}')
-    .replace(/İ/g, '\\text{İ}')
-    .replace(/ö/g, '\\text{ö}')
-    .replace(/Ö/g, '\\text{Ö}')
-    .replace(/ü/g, '\\text{ü}')
-    .replace(/Ü/g, '\\text{Ü}')
-    .replace(/ç/g, '\\text{ç}')
-    .replace(/Ç/g, '\\text{Ç}');
+    .replace(/ş/g, 's')
+    .replace(/Ş/g, 'S')
+    .replace(/ğ/g, 'g')
+    .replace(/Ğ/g, 'G')
+    .replace(/ı/g, 'i')
+    .replace(/İ/g, 'I')
+    .replace(/ö/g, 'o')
+    .replace(/Ö/g, 'O')
+    .replace(/ü/g, 'u')
+    .replace(/Ü/g, 'U')
+    .replace(/ç/g, 'c')
+    .replace(/Ç/g, 'C');
 }
 
 /**
@@ -32,7 +33,8 @@ function renderMathInText(text: string): string {
       return katex.renderToString(sanitizedExpr, { 
         displayMode: true,
         strict: false,
-        trust: true
+        trust: true,
+        throwOnError: false
       });
     } catch {
       return `$$${expr}$$`;
@@ -46,7 +48,8 @@ function renderMathInText(text: string): string {
       return katex.renderToString(sanitizedExpr, { 
         displayMode: false,
         strict: false,
-        trust: true
+        trust: true,
+        throwOnError: false
       });
     } catch {
       return `$${expr}$`;
@@ -88,77 +91,98 @@ export function generateTestPDFContent(
   settings: PDFExportSettings = defaultPDFSettings
 ): HTMLElement {
   const container = document.createElement("div");
-  container.style.maxWidth = "210mm";
-  container.style.margin = "0 auto";
-  container.style.padding = "20px";
-  container.style.fontFamily = "Arial, sans-serif";
-  container.style.fontSize = "12pt";
+  container.style.cssText = `
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: Arial, sans-serif;
+    font-size: 12pt;
+    line-height: 1.4;
+    color: #000;
+    background: white;
+  `;
   container.className = "pdf-container";
 
   // Başlık
   const title = document.createElement("h1");
   title.textContent = test.title;
-  title.style.fontSize = "18pt";
-  title.style.marginBottom = "10px";
-  title.style.textAlign = "center";
+  title.style.cssText = `
+    font-size: 18pt;
+    margin: 0 0 10px 0;
+    text-align: center;
+    font-weight: bold;
+    color: #000;
+  `;
   container.appendChild(title);
 
   // Test bilgileri
-  const infoDiv = document.createElement("div");
-  infoDiv.style.textAlign = "center";
-  infoDiv.style.marginBottom = "20px";
-  infoDiv.style.fontSize = "11pt";
-  infoDiv.style.color = "#666";
-  
   const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
-  let infoText = `Soru Sayısı: ${testQuestions.length}`;
-  
-  if (settings.showDate) {
-    const testDate = new Date(test.createdAt).toLocaleDateString('tr-TR');
-    infoText = `Tarih: ${testDate} | ${infoText}`;
+  if (testQuestions.length > 0) {
+    const infoDiv = document.createElement("div");
+    infoDiv.style.cssText = `
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 11pt;
+      color: #666;
+    `;
+    
+    let infoText = `Soru Sayısı: ${testQuestions.length}`;
+    
+    if (settings.showDate) {
+      const testDate = new Date(test.createdAt).toLocaleDateString('tr-TR');
+      infoText = `Tarih: ${testDate} | ${infoText}`;
+    }
+    
+    infoDiv.textContent = infoText;
+    container.appendChild(infoDiv);
   }
-  
-  infoDiv.innerHTML = infoText;
-  container.appendChild(infoDiv);
 
   // Test açıklaması
-  if (test.description) {
+  if (test.description && test.description.trim()) {
     const desc = document.createElement("p");
     desc.innerHTML = renderMathInText(test.description);
-    desc.style.fontSize = "11pt";
-    desc.style.marginBottom = "20px";
-    desc.style.textAlign = "center";
+    desc.style.cssText = `
+      font-size: 11pt;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #333;
+    `;
     container.appendChild(desc);
   }
 
   // Sorular Konteyneri
   const questionsContainer = document.createElement("div");
-  questionsContainer.style.display = "flex";
-  questionsContainer.style.flexWrap = "wrap";
-  questionsContainer.style.gap = "15px";
-  questionsContainer.style.justifyContent = "space-between";
-  questionsContainer.className = "questions-container";
+  questionsContainer.style.cssText = `
+    display: block;
+    width: 100%;
+  `;
 
   for (let i = 0; i < testQuestions.length; i++) {
     const q = testQuestions[i];
     const category = categories.find(cat => cat.id === q.categoryId);
 
     const card = document.createElement("div");
-    card.style.width = settings.questionsPerRow === 1 ? "100%" : "48%";
-    card.style.border = "1px solid #ddd";
-    card.style.padding = "12px";
-    card.style.boxSizing = "border-box";
-    card.style.borderRadius = "8px";
-    card.style.backgroundColor = "#fafafa";
-    card.style.breakInside = "avoid";
-    card.style.marginBottom = "10px";
-    card.className = "question-card";
+    card.style.cssText = `
+      width: ${settings.questionsPerRow === 1 ? "100%" : "48%"};
+      border: 1px solid #ddd;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      background-color: #fafafa;
+      display: inline-block;
+      vertical-align: top;
+      box-sizing: border-box;
+      ${settings.questionsPerRow === 2 ? "margin-right: 2%;" : ""}
+      page-break-inside: avoid;
+    `;
 
     // Soru başlığı
     const titleEl = document.createElement("div");
-    titleEl.style.marginBottom = "8px";
-    titleEl.style.borderBottom = "1px solid #eee";
-    titleEl.style.paddingBottom = "5px";
+    titleEl.style.cssText = `
+      margin-bottom: 8px;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 5px;
+    `;
     
     const questionNumber = document.createElement("strong");
     questionNumber.textContent = `${i + 1}. `;
@@ -173,30 +197,38 @@ export function generateTestPDFContent(
     // Meta bilgiler
     if (settings.showMetaInfo) {
       const metaContainer = document.createElement("div");
-      metaContainer.style.display = "flex";
-      metaContainer.style.flexWrap = "wrap";
-      metaContainer.style.gap = "5px";
-      metaContainer.style.marginLeft = "8px";
+      metaContainer.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        margin-top: 5px;
+      `;
 
       if (settings.showCategory && category) {
         const categoryBadge = document.createElement("span");
         categoryBadge.textContent = category.name;
-        categoryBadge.style.fontSize = "9pt";
-        categoryBadge.style.backgroundColor = category.color || "#e0e0e0";
-        categoryBadge.style.color = "white";
-        categoryBadge.style.padding = "2px 6px";
-        categoryBadge.style.borderRadius = "12px";
+        categoryBadge.style.cssText = `
+          font-size: 9pt;
+          background-color: ${category.color || "#e0e0e0"};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 12px;
+          display: inline-block;
+        `;
         metaContainer.appendChild(categoryBadge);
       }
 
       if (settings.showGrade) {
         const gradeBadge = document.createElement("span");
         gradeBadge.textContent = `${q.grade}. Sınıf`;
-        gradeBadge.style.fontSize = "9pt";
-        gradeBadge.style.backgroundColor = "#4CAF50";
-        gradeBadge.style.color = "white";
-        gradeBadge.style.padding = "2px 6px";
-        gradeBadge.style.borderRadius = "12px";
+        gradeBadge.style.cssText = `
+          font-size: 9pt;
+          background-color: #4CAF50;
+          color: white;
+          padding: 2px 6px;
+          border-radius: 12px;
+          display: inline-block;
+        `;
         metaContainer.appendChild(gradeBadge);
       }
 
@@ -204,11 +236,14 @@ export function generateTestPDFContent(
         const difficultyBadge = document.createElement("span");
         difficultyBadge.textContent = q.difficultyLevel;
         const diffColors = { 'kolay': '#2196F3', 'orta': '#FF9800', 'zor': '#F44336' };
-        difficultyBadge.style.fontSize = "9pt";
-        difficultyBadge.style.backgroundColor = diffColors[q.difficultyLevel] || "#666";
-        difficultyBadge.style.color = "white";
-        difficultyBadge.style.padding = "2px 6px";
-        difficultyBadge.style.borderRadius = "12px";
+        difficultyBadge.style.cssText = `
+          font-size: 9pt;
+          background-color: ${diffColors[q.difficultyLevel] || "#666"};
+          color: white;
+          padding: 2px 6px;
+          border-radius: 12px;
+          display: inline-block;
+        `;
         metaContainer.appendChild(difficultyBadge);
       }
 
@@ -220,29 +255,37 @@ export function generateTestPDFContent(
     card.appendChild(titleEl);
 
     // Soru içeriği
-    const contentEl = document.createElement("div");
-    contentEl.innerHTML = renderMathInText(q.content);
-    contentEl.style.lineHeight = "1.4";
-    contentEl.style.marginBottom = "8px";
-    contentEl.className = "question-content";
-    card.appendChild(contentEl);
+    if (q.content && q.content.trim()) {
+      const contentEl = document.createElement("div");
+      contentEl.innerHTML = renderMathInText(q.content);
+      contentEl.style.cssText = `
+        line-height: 1.4;
+        margin-bottom: 8px;
+        color: #333;
+      `;
+      card.appendChild(contentEl);
+    }
 
     // Resimler
     if (q.imageUrls && q.imageUrls.length > 0) {
       const imagesContainer = document.createElement("div");
-      imagesContainer.style.display = "flex";
-      imagesContainer.style.flexWrap = "wrap";
-      imagesContainer.style.gap = "8px";
-      imagesContainer.style.marginBottom = "8px";
+      imagesContainer.style.cssText = `
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 8px;
+      `;
       
       q.imageUrls.forEach(url => {
         const img = document.createElement("img");
         img.src = url;
-        img.style.maxWidth = "100px";
-        img.style.maxHeight = "80px";
-        img.style.objectFit = "contain";
-        img.style.border = "1px solid #ddd";
-        img.style.borderRadius = "4px";
+        img.style.cssText = `
+          max-width: 100px;
+          max-height: 80px;
+          object-fit: contain;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        `;
         imagesContainer.appendChild(img);
       });
       
@@ -252,13 +295,16 @@ export function generateTestPDFContent(
     // Seçenekler
     if (settings.showOptions && q.options && q.options.length > 0) {
       const optionsContainer = document.createElement("div");
-      optionsContainer.style.marginTop = "10px";
-      optionsContainer.className = "question-options";
+      optionsContainer.style.cssText = `
+        margin-top: 10px;
+      `;
       
       q.options.forEach((option, optIndex) => {
         const optionDiv = document.createElement("div");
-        optionDiv.style.marginBottom = "4px";
-        optionDiv.style.fontSize = "10pt";
+        optionDiv.style.cssText = `
+          margin-bottom: 4px;
+          font-size: 10pt;
+        `;
         
         const optionLetter = document.createElement("strong");
         optionLetter.textContent = `${String.fromCharCode(65 + optIndex)}) `;
@@ -288,33 +334,42 @@ export function generateTestPDFContent(
     
     if (answersWithKeys.length > 0) {
       const answerKeySection = document.createElement("div");
-      answerKeySection.style.marginTop = "30px";
-      answerKeySection.style.pageBreakBefore = "always";
-      answerKeySection.style.padding = "20px";
-      answerKeySection.style.border = "2px solid #333";
-      answerKeySection.style.borderRadius = "8px";
-      answerKeySection.style.backgroundColor = "#f9f9f9";
+      answerKeySection.style.cssText = `
+        margin-top: 30px;
+        padding: 20px;
+        border: 2px solid #333;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        page-break-before: always;
+      `;
 
       const answerKeyTitle = document.createElement("h2");
       answerKeyTitle.textContent = "CEVAP ANAHTARI";
-      answerKeyTitle.style.textAlign = "center";
-      answerKeyTitle.style.marginBottom = "20px";
-      answerKeyTitle.style.fontSize = "16pt";
+      answerKeyTitle.style.cssText = `
+        text-align: center;
+        margin: 0 0 20px 0;
+        font-size: 16pt;
+        font-weight: bold;
+      `;
       answerKeySection.appendChild(answerKeyTitle);
 
       const answerGrid = document.createElement("div");
-      answerGrid.style.display = "grid";
-      answerGrid.style.gridTemplateColumns = "repeat(auto-fit, minmax(150px, 1fr))";
-      answerGrid.style.gap = "10px";
+      answerGrid.style.cssText = `
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 10px;
+      `;
 
-      answersWithKeys.forEach((q, index) => {
+      answersWithKeys.forEach((q) => {
         const answerItem = document.createElement("div");
-        answerItem.style.display = "flex";
-        answerItem.style.justifyContent = "space-between";
-        answerItem.style.padding = "5px 10px";
-        answerItem.style.backgroundColor = "white";
-        answerItem.style.border = "1px solid #ddd";
-        answerItem.style.borderRadius = "4px";
+        answerItem.style.cssText = `
+          display: flex;
+          justify-content: space-between;
+          padding: 5px 10px;
+          background-color: white;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+        `;
 
         const questionNum = document.createElement("strong");
         const questionIndex = testQuestions.findIndex(tq => tq.id === q.id) + 1;
@@ -322,8 +377,10 @@ export function generateTestPDFContent(
 
         const correctLetter = document.createElement("span");
         correctLetter.textContent = String.fromCharCode(65 + (q.correctAnswer || 0));
-        correctLetter.style.fontWeight = "bold";
-        correctLetter.style.color = "#2196F3";
+        correctLetter.style.cssText = `
+          font-weight: bold;
+          color: #2196F3;
+        `;
 
         answerItem.appendChild(questionNum);
         answerItem.appendChild(correctLetter);
@@ -365,25 +422,34 @@ export async function exportTestToPDF(
     
     const element = generateTestPDFContent(test, questions, categories, settings);
     
-    // DOM'a geçici olarak ekle (render için gerekli)
+    // DOM'a geçici olarak ekle ve bekleme süresi ver
     document.body.appendChild(element);
+    
+    // Render için kısa bir bekleme
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     const opt = {
-      margin: 10,
+      margin: [10, 10, 10, 10],
       filename: `${test.title.replace(/[^\w\d\s]/g, "_")}.pdf`,
-      image: { type: "jpeg", quality: 0.95 },
+      image: { 
+        type: "jpeg", 
+        quality: 0.98 
+      },
       html2canvas: {
         scale: 2,
         useCORS: true,
-        letterRendering: true,
-        logging: false,
         allowTaint: true,
-        foreignObjectRendering: true
+        logging: false,
+        letterRendering: true,
+        foreignObjectRendering: true,
+        width: element.offsetWidth,
+        height: element.offsetHeight
       },
       jsPDF: {
         unit: "mm",
         format: "a4",
         orientation: "portrait",
+        compress: true
       },
     };
 

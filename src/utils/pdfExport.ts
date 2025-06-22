@@ -1,16 +1,17 @@
 
 import { Test, Question, Category } from '@/types';
-import { exportTestToPDF as modernExportTestToPDF } from './modernPdfExport';
+import { exportTestToPDF as modernExportTestToPDF, PDFExportSettings, defaultPDFSettings } from './modernPdfExport';
 
-// Eski PDF export fonksiyonunu modern versiyona yönlendir
+// Modern PDF export fonksiyonunu kullan
 export const exportTestToPDF = async (
   test: Test,
   questions: Question[],
-  categories: Category[]
+  categories: Category[],
+  settings: PDFExportSettings = defaultPDFSettings
 ) => {
   try {
     console.log('PDF oluşturma işlemi modern sistem ile başlıyor...');
-    await modernExportTestToPDF(test, questions, categories);
+    await modernExportTestToPDF(test, questions, categories, settings);
   } catch (error) {
     console.error('Modern PDF export hatası:', error);
     
@@ -29,6 +30,7 @@ export const exportTestToPDF = async (
         content: q.content,
         category: categories.find(cat => cat.id === q.categoryId)?.name || 'Bilinmeyen',
         options: test.settings.showOptions && q.options ? q.options : undefined,
+        correctAnswer: q.correctAnswer
       })),
       exportDate: new Date().toISOString(),
       note: "PDF oluşturulamadı, yedek JSON dosyası oluşturuldu"
@@ -50,3 +52,5 @@ export const exportTestToPDF = async (
     console.log('Yedek JSON dosyası oluşturuldu');
   }
 };
+
+export { PDFExportSettings, defaultPDFSettings } from './modernPdfExport';

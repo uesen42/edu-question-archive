@@ -1,4 +1,3 @@
-
 import { Test, Question, Category } from '@/types';
 import katex from 'katex';
 import html2pdf from 'html2pdf.js';
@@ -11,7 +10,7 @@ function sanitizeTurkishChars(text: string): string {
     .replace(/ş/g, '\\text{ş}')
     .replace(/Ş/g, '\\text{Ş}')
     .replace(/ğ/g, '\\text{ğ}')
-    .replace /Ğ/g, '\\text{Ğ}')
+    .replace(/Ğ/g, '\\text{Ğ}')
     .replace(/ı/g, '\\text{ı}')
     .replace(/İ/g, '\\text{İ}')
     .replace(/ö/g, '\\text{ö}')

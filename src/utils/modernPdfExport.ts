@@ -37,7 +37,7 @@ function renderMathInText(text: string): string {
         throwOnError: false
       });
     } catch {
-      return `$$${expr}$$`;
+      return `<div style="text-align: center; margin: 8px 0; font-weight: bold;">[${expr}]</div>`;
     }
   });
 
@@ -52,7 +52,7 @@ function renderMathInText(text: string): string {
         throwOnError: false
       });
     } catch {
-      return `$${expr}$`;
+      return `<span style="font-weight: bold;">[${expr}]</span>`;
     }
   });
 
@@ -92,26 +92,28 @@ export function generateTestPDFContent(
 ): HTMLElement {
   const container = document.createElement("div");
   container.style.cssText = `
-    max-width: 210mm;
-    margin: 0 auto;
-    padding: 20px;
-    font-family: Arial, sans-serif;
-    font-size: 12pt;
+    width: 190mm;
+    min-height: 250mm;
+    margin: 0;
+    padding: 15mm;
+    font-family: 'Arial', sans-serif;
+    font-size: 11pt;
     line-height: 1.4;
     color: #000;
     background: white;
+    box-sizing: border-box;
   `;
-  container.className = "pdf-container";
 
-  // Başlık
+  // Test başlığı
   const title = document.createElement("h1");
   title.textContent = test.title;
   title.style.cssText = `
-    font-size: 18pt;
-    margin: 0 0 10px 0;
+    font-size: 16pt;
+    margin: 0 0 15mm 0;
     text-align: center;
     font-weight: bold;
     color: #000;
+    page-break-after: avoid;
   `;
   container.appendChild(title);
 
@@ -121,274 +123,282 @@ export function generateTestPDFContent(
     const infoDiv = document.createElement("div");
     infoDiv.style.cssText = `
       text-align: center;
-      margin-bottom: 20px;
-      font-size: 11pt;
-      color: #666;
+      margin-bottom: 10mm;
+      font-size: 10pt;
+      color: #333;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 5mm;
     `;
     
-    let infoText = `Soru Sayısı: ${testQuestions.length}`;
+    let infoText = `Toplam Soru Sayısı: ${testQuestions.length}`;
     
     if (settings.showDate) {
       const testDate = new Date(test.createdAt).toLocaleDateString('tr-TR');
       infoText = `Tarih: ${testDate} | ${infoText}`;
     }
     
-    infoDiv.textContent = infoText;
+    infoDiv.innerHTML = infoText;
     container.appendChild(infoDiv);
   }
 
   // Test açıklaması
   if (test.description && test.description.trim()) {
-    const desc = document.createElement("p");
+    const desc = document.createElement("div");
     desc.innerHTML = renderMathInText(test.description);
     desc.style.cssText = `
-      font-size: 11pt;
-      margin-bottom: 20px;
+      font-size: 10pt;
+      margin-bottom: 10mm;
       text-align: center;
-      color: #333;
+      color: #555;
+      font-style: italic;
     `;
     container.appendChild(desc);
   }
 
-  // Sorular Konteyneri
-  const questionsContainer = document.createElement("div");
-  questionsContainer.style.cssText = `
-    display: block;
+  // Sorular için ana container
+  const questionsWrapper = document.createElement("div");
+  questionsWrapper.style.cssText = `
     width: 100%;
+    display: block;
   `;
 
   for (let i = 0; i < testQuestions.length; i++) {
     const q = testQuestions[i];
     const category = categories.find(cat => cat.id === q.categoryId);
 
-    const card = document.createElement("div");
-    card.style.cssText = `
+    const questionCard = document.createElement("div");
+    questionCard.style.cssText = `
       width: ${settings.questionsPerRow === 1 ? "100%" : "48%"};
-      border: 1px solid #ddd;
-      padding: 12px;
-      margin-bottom: 15px;
-      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 8mm;
+      padding: 5mm;
+      border-radius: 3mm;
       background-color: #fafafa;
       display: inline-block;
       vertical-align: top;
       box-sizing: border-box;
-      ${settings.questionsPerRow === 2 ? "margin-right: 2%;" : ""}
+      ${settings.questionsPerRow === 2 ? "margin-right: 4%;" : ""}
       page-break-inside: avoid;
+      min-height: 20mm;
     `;
 
-    // Soru başlığı
-    const titleEl = document.createElement("div");
-    titleEl.style.cssText = `
-      margin-bottom: 8px;
-      border-bottom: 1px solid #eee;
-      padding-bottom: 5px;
+    // Soru başlığı ve numarası
+    const header = document.createElement("div");
+    header.style.cssText = `
+      margin-bottom: 3mm;
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 2mm;
     `;
     
-    const questionNumber = document.createElement("strong");
-    questionNumber.textContent = `${i + 1}. `;
-    questionNumber.style.color = "#333";
-    titleEl.appendChild(questionNumber);
+    const questionNum = document.createElement("strong");
+    questionNum.textContent = `${i + 1}. `;
+    questionNum.style.cssText = `color: #000; font-size: 11pt;`;
+    header.appendChild(questionNum);
 
     const questionTitle = document.createElement("span");
     questionTitle.textContent = q.title || "Soru";
-    questionTitle.style.color = "#333";
-    titleEl.appendChild(questionTitle);
+    questionTitle.style.cssText = `color: #000; font-size: 11pt;`;
+    header.appendChild(questionTitle);
 
     // Meta bilgiler
     if (settings.showMetaInfo) {
-      const metaContainer = document.createElement("div");
-      metaContainer.style.cssText = `
+      const metaDiv = document.createElement("div");
+      metaDiv.style.cssText = `
+        margin-top: 2mm;
         display: flex;
         flex-wrap: wrap;
-        gap: 5px;
-        margin-top: 5px;
+        gap: 2mm;
       `;
 
       if (settings.showCategory && category) {
-        const categoryBadge = document.createElement("span");
-        categoryBadge.textContent = category.name;
-        categoryBadge.style.cssText = `
-          font-size: 9pt;
-          background-color: ${category.color || "#e0e0e0"};
+        const catBadge = document.createElement("span");
+        catBadge.textContent = category.name;
+        catBadge.style.cssText = `
+          font-size: 8pt;
+          background-color: ${category.color || "#666"};
           color: white;
-          padding: 2px 6px;
-          border-radius: 12px;
+          padding: 1mm 2mm;
+          border-radius: 2mm;
           display: inline-block;
         `;
-        metaContainer.appendChild(categoryBadge);
+        metaDiv.appendChild(catBadge);
       }
 
       if (settings.showGrade) {
         const gradeBadge = document.createElement("span");
         gradeBadge.textContent = `${q.grade}. Sınıf`;
         gradeBadge.style.cssText = `
-          font-size: 9pt;
+          font-size: 8pt;
           background-color: #4CAF50;
           color: white;
-          padding: 2px 6px;
-          border-radius: 12px;
+          padding: 1mm 2mm;
+          border-radius: 2mm;
           display: inline-block;
         `;
-        metaContainer.appendChild(gradeBadge);
+        metaDiv.appendChild(gradeBadge);
       }
 
       if (settings.showDifficulty) {
-        const difficultyBadge = document.createElement("span");
-        difficultyBadge.textContent = q.difficultyLevel;
+        const diffBadge = document.createElement("span");
+        diffBadge.textContent = q.difficultyLevel;
         const diffColors = { 'kolay': '#2196F3', 'orta': '#FF9800', 'zor': '#F44336' };
-        difficultyBadge.style.cssText = `
-          font-size: 9pt;
+        diffBadge.style.cssText = `
+          font-size: 8pt;
           background-color: ${diffColors[q.difficultyLevel] || "#666"};
           color: white;
-          padding: 2px 6px;
-          border-radius: 12px;
+          padding: 1mm 2mm;
+          border-radius: 2mm;
           display: inline-block;
         `;
-        metaContainer.appendChild(difficultyBadge);
+        metaDiv.appendChild(diffBadge);
       }
 
-      if (metaContainer.children.length > 0) {
-        titleEl.appendChild(metaContainer);
+      if (metaDiv.children.length > 0) {
+        header.appendChild(metaDiv);
       }
     }
 
-    card.appendChild(titleEl);
+    questionCard.appendChild(header);
 
     // Soru içeriği
     if (q.content && q.content.trim()) {
-      const contentEl = document.createElement("div");
-      contentEl.innerHTML = renderMathInText(q.content);
-      contentEl.style.cssText = `
-        line-height: 1.4;
-        margin-bottom: 8px;
-        color: #333;
+      const content = document.createElement("div");
+      content.innerHTML = renderMathInText(q.content);
+      content.style.cssText = `
+        line-height: 1.5;
+        margin-bottom: 3mm;
+        color: #000;
+        font-size: 10pt;
       `;
-      card.appendChild(contentEl);
+      questionCard.appendChild(content);
     }
 
-    // Resimler
+    // Resimler (varsa)
     if (q.imageUrls && q.imageUrls.length > 0) {
-      const imagesContainer = document.createElement("div");
-      imagesContainer.style.cssText = `
+      const imgContainer = document.createElement("div");
+      imgContainer.style.cssText = `
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 8px;
+        gap: 2mm;
+        margin-bottom: 3mm;
       `;
       
       q.imageUrls.forEach(url => {
         const img = document.createElement("img");
         img.src = url;
         img.style.cssText = `
-          max-width: 100px;
-          max-height: 80px;
+          max-width: 25mm;
+          max-height: 20mm;
           object-fit: contain;
-          border: 1px solid #ddd;
-          border-radius: 4px;
+          border: 1px solid #ccc;
+          border-radius: 1mm;
         `;
-        imagesContainer.appendChild(img);
+        imgContainer.appendChild(img);
       });
       
-      card.appendChild(imagesContainer);
+      questionCard.appendChild(imgContainer);
     }
 
     // Seçenekler
     if (settings.showOptions && q.options && q.options.length > 0) {
-      const optionsContainer = document.createElement("div");
-      optionsContainer.style.cssText = `
-        margin-top: 10px;
-      `;
+      const optionsDiv = document.createElement("div");
+      optionsDiv.style.cssText = `margin-top: 3mm;`;
       
       q.options.forEach((option, optIndex) => {
-        const optionDiv = document.createElement("div");
-        optionDiv.style.cssText = `
-          margin-bottom: 4px;
-          font-size: 10pt;
+        const optionItem = document.createElement("div");
+        optionItem.style.cssText = `
+          margin-bottom: 1mm;
+          font-size: 9pt;
+          line-height: 1.3;
         `;
         
-        const optionLetter = document.createElement("strong");
-        optionLetter.textContent = `${String.fromCharCode(65 + optIndex)}) `;
-        optionLetter.style.color = "#555";
-        optionDiv.appendChild(optionLetter);
+        const optLetter = document.createElement("strong");
+        optLetter.textContent = `${String.fromCharCode(65 + optIndex)}) `;
+        optLetter.style.cssText = `color: #333;`;
+        optionItem.appendChild(optLetter);
         
-        const optionText = document.createElement("span");
-        optionText.innerHTML = renderMathInText(option);
-        optionDiv.appendChild(optionText);
+        const optText = document.createElement("span");
+        optText.innerHTML = renderMathInText(option);
+        optionItem.appendChild(optText);
         
-        optionsContainer.appendChild(optionDiv);
+        optionsDiv.appendChild(optionItem);
       });
       
-      card.appendChild(optionsContainer);
+      questionCard.appendChild(optionsDiv);
     }
 
-    questionsContainer.appendChild(card);
+    questionsWrapper.appendChild(questionCard);
   }
 
-  container.appendChild(questionsContainer);
+  container.appendChild(questionsWrapper);
 
   // Cevap anahtarı
   if (settings.showAnswerKey) {
-    const answersWithKeys = testQuestions.filter(q => 
+    const answeredQuestions = testQuestions.filter(q => 
       q.options && q.options.length > 0 && typeof q.correctAnswer === 'number'
     );
     
-    if (answersWithKeys.length > 0) {
-      const answerKeySection = document.createElement("div");
-      answerKeySection.style.cssText = `
-        margin-top: 30px;
-        padding: 20px;
-        border: 2px solid #333;
-        border-radius: 8px;
-        background-color: #f9f9f9;
+    if (answeredQuestions.length > 0) {
+      const answerSection = document.createElement("div");
+      answerSection.style.cssText = `
+        margin-top: 15mm;
+        padding: 5mm;
+        border: 2px solid #000;
+        border-radius: 3mm;
+        background-color: #f5f5f5;
         page-break-before: always;
       `;
 
-      const answerKeyTitle = document.createElement("h2");
-      answerKeyTitle.textContent = "CEVAP ANAHTARI";
-      answerKeyTitle.style.cssText = `
+      const answerTitle = document.createElement("h2");
+      answerTitle.textContent = "CEVAP ANAHTARI";
+      answerTitle.style.cssText = `
         text-align: center;
-        margin: 0 0 20px 0;
-        font-size: 16pt;
+        margin: 0 0 5mm 0;
+        font-size: 14pt;
         font-weight: bold;
+        color: #000;
       `;
-      answerKeySection.appendChild(answerKeyTitle);
+      answerSection.appendChild(answerTitle);
 
       const answerGrid = document.createElement("div");
       answerGrid.style.cssText = `
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 10px;
+        grid-template-columns: repeat(auto-fit, minmax(30mm, 1fr));
+        gap: 3mm;
       `;
 
-      answersWithKeys.forEach((q) => {
+      answeredQuestions.forEach((q) => {
         const answerItem = document.createElement("div");
         answerItem.style.cssText = `
           display: flex;
           justify-content: space-between;
-          padding: 5px 10px;
+          align-items: center;
+          padding: 2mm 3mm;
           background-color: white;
-          border: 1px solid #ddd;
-          border-radius: 4px;
+          border: 1px solid #ccc;
+          border-radius: 2mm;
         `;
 
-        const questionNum = document.createElement("strong");
+        const qNum = document.createElement("strong");
         const questionIndex = testQuestions.findIndex(tq => tq.id === q.id) + 1;
-        questionNum.textContent = `${questionIndex}.`;
+        qNum.textContent = `${questionIndex}.`;
+        qNum.style.cssText = `color: #000;`;
 
-        const correctLetter = document.createElement("span");
-        correctLetter.textContent = String.fromCharCode(65 + (q.correctAnswer || 0));
-        correctLetter.style.cssText = `
+        const correctAnswer = document.createElement("span");
+        correctAnswer.textContent = String.fromCharCode(65 + (q.correctAnswer || 0));
+        correctAnswer.style.cssText = `
           font-weight: bold;
           color: #2196F3;
+          font-size: 11pt;
         `;
 
-        answerItem.appendChild(questionNum);
-        answerItem.appendChild(correctLetter);
+        answerItem.appendChild(qNum);
+        answerItem.appendChild(correctAnswer);
         answerGrid.appendChild(answerItem);
       });
 
-      answerKeySection.appendChild(answerGrid);
-      container.appendChild(answerKeySection);
+      answerSection.appendChild(answerGrid);
+      container.appendChild(answerSection);
     }
   }
 
@@ -396,7 +406,7 @@ export function generateTestPDFContent(
 }
 
 /**
- * PDF önizleme için HTML content oluşturur
+ * PDF önizleme içeriği oluşturur
  */
 export function generatePDFPreviewContent(
   test: Test,
@@ -409,7 +419,7 @@ export function generatePDFPreviewContent(
 }
 
 /**
- * PDF olarak indirme işlemi
+ * PDF export işlemi
  */
 export async function exportTestToPDF(
   test: Test, 
@@ -422,28 +432,33 @@ export async function exportTestToPDF(
     
     const element = generateTestPDFContent(test, questions, categories, settings);
     
-    // DOM'a geçici olarak ekle ve bekleme süresi ver
+    // DOM'a ekle
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '0';
     document.body.appendChild(element);
     
-    // Render için kısa bir bekleme
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Render için bekle
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const opt = {
+    const options = {
       margin: [10, 10, 10, 10],
       filename: `${test.title.replace(/[^\w\d\s]/g, "_")}.pdf`,
       image: { 
         type: "jpeg", 
-        quality: 0.98 
+        quality: 0.95 
       },
       html2canvas: {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         allowTaint: true,
         logging: false,
         letterRendering: true,
         foreignObjectRendering: true,
-        width: element.offsetWidth,
-        height: element.offsetHeight
+        scrollX: 0,
+        scrollY: 0,
+        windowWidth: 794,
+        windowHeight: 1123
       },
       jsPDF: {
         unit: "mm",
@@ -451,13 +466,16 @@ export async function exportTestToPDF(
         orientation: "portrait",
         compress: true
       },
+      pagebreak: { 
+        mode: ['avoid-all', 'css', 'legacy'] 
+      }
     };
 
-    await html2pdf().set(opt).from(element).save();
+    await html2pdf().set(options).from(element).save();
     
     console.log('PDF başarıyla oluşturuldu');
 
-    // Bellek temizliği
+    // Temizlik
     document.body.removeChild(element);
     
   } catch (error) {

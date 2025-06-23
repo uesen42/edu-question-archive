@@ -102,6 +102,8 @@ export function generateTestPDFContent(
     color: #000;
     background: white;
     box-sizing: border-box;
+    position: relative;
+    display: block;
   `;
 
   // Test başlığı
@@ -114,6 +116,7 @@ export function generateTestPDFContent(
     font-weight: bold;
     color: #000;
     page-break-after: avoid;
+    display: block;
   `;
   container.appendChild(title);
 
@@ -128,6 +131,7 @@ export function generateTestPDFContent(
       color: #333;
       border-bottom: 1px solid #ddd;
       padding-bottom: 5mm;
+      display: block;
     `;
     
     let infoText = `Toplam Soru Sayısı: ${testQuestions.length}`;
@@ -151,6 +155,7 @@ export function generateTestPDFContent(
       text-align: center;
       color: #555;
       font-style: italic;
+      display: block;
     `;
     container.appendChild(desc);
   }
@@ -160,6 +165,7 @@ export function generateTestPDFContent(
   questionsWrapper.style.cssText = `
     width: 100%;
     display: block;
+    overflow: visible;
   `;
 
   for (let i = 0; i < testQuestions.length; i++) {
@@ -180,6 +186,7 @@ export function generateTestPDFContent(
       ${settings.questionsPerRow === 2 ? "margin-right: 4%;" : ""}
       page-break-inside: avoid;
       min-height: 20mm;
+      position: relative;
     `;
 
     // Soru başlığı ve numarası
@@ -188,16 +195,17 @@ export function generateTestPDFContent(
       margin-bottom: 3mm;
       border-bottom: 1px solid #ddd;
       padding-bottom: 2mm;
+      display: block;
     `;
     
     const questionNum = document.createElement("strong");
     questionNum.textContent = `${i + 1}. `;
-    questionNum.style.cssText = `color: #000; font-size: 11pt;`;
+    questionNum.style.cssText = `color: #000; font-size: 11pt; display: inline;`;
     header.appendChild(questionNum);
 
     const questionTitle = document.createElement("span");
     questionTitle.textContent = q.title || "Soru";
-    questionTitle.style.cssText = `color: #000; font-size: 11pt;`;
+    questionTitle.style.cssText = `color: #000; font-size: 11pt; display: inline;`;
     header.appendChild(questionTitle);
 
     // Meta bilgiler
@@ -205,9 +213,7 @@ export function generateTestPDFContent(
       const metaDiv = document.createElement("div");
       metaDiv.style.cssText = `
         margin-top: 2mm;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2mm;
+        display: block;
       `;
 
       if (settings.showCategory && category) {
@@ -220,6 +226,7 @@ export function generateTestPDFContent(
           padding: 1mm 2mm;
           border-radius: 2mm;
           display: inline-block;
+          margin-right: 2mm;
         `;
         metaDiv.appendChild(catBadge);
       }
@@ -234,6 +241,7 @@ export function generateTestPDFContent(
           padding: 1mm 2mm;
           border-radius: 2mm;
           display: inline-block;
+          margin-right: 2mm;
         `;
         metaDiv.appendChild(gradeBadge);
       }
@@ -249,6 +257,7 @@ export function generateTestPDFContent(
           padding: 1mm 2mm;
           border-radius: 2mm;
           display: inline-block;
+          margin-right: 2mm;
         `;
         metaDiv.appendChild(diffBadge);
       }
@@ -269,6 +278,7 @@ export function generateTestPDFContent(
         margin-bottom: 3mm;
         color: #000;
         font-size: 10pt;
+        display: block;
       `;
       questionCard.appendChild(content);
     }
@@ -277,9 +287,7 @@ export function generateTestPDFContent(
     if (q.imageUrls && q.imageUrls.length > 0) {
       const imgContainer = document.createElement("div");
       imgContainer.style.cssText = `
-        display: flex;
-        flex-wrap: wrap;
-        gap: 2mm;
+        display: block;
         margin-bottom: 3mm;
       `;
       
@@ -292,6 +300,8 @@ export function generateTestPDFContent(
           object-fit: contain;
           border: 1px solid #ccc;
           border-radius: 1mm;
+          margin-right: 2mm;
+          display: inline-block;
         `;
         imgContainer.appendChild(img);
       });
@@ -302,7 +312,7 @@ export function generateTestPDFContent(
     // Seçenekler
     if (settings.showOptions && q.options && q.options.length > 0) {
       const optionsDiv = document.createElement("div");
-      optionsDiv.style.cssText = `margin-top: 3mm;`;
+      optionsDiv.style.cssText = `margin-top: 3mm; display: block;`;
       
       q.options.forEach((option, optIndex) => {
         const optionItem = document.createElement("div");
@@ -310,15 +320,17 @@ export function generateTestPDFContent(
           margin-bottom: 1mm;
           font-size: 9pt;
           line-height: 1.3;
+          display: block;
         `;
         
         const optLetter = document.createElement("strong");
         optLetter.textContent = `${String.fromCharCode(65 + optIndex)}) `;
-        optLetter.style.cssText = `color: #333;`;
+        optLetter.style.cssText = `color: #333; display: inline;`;
         optionItem.appendChild(optLetter);
         
         const optText = document.createElement("span");
         optText.innerHTML = renderMathInText(option);
+        optText.style.cssText = `display: inline;`;
         optionItem.appendChild(optText);
         
         optionsDiv.appendChild(optionItem);
@@ -347,6 +359,7 @@ export function generateTestPDFContent(
         border-radius: 3mm;
         background-color: #f5f5f5;
         page-break-before: always;
+        display: block;
       `;
 
       const answerTitle = document.createElement("h2");
@@ -357,32 +370,33 @@ export function generateTestPDFContent(
         font-size: 14pt;
         font-weight: bold;
         color: #000;
+        display: block;
       `;
       answerSection.appendChild(answerTitle);
 
       const answerGrid = document.createElement("div");
       answerGrid.style.cssText = `
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(30mm, 1fr));
-        gap: 3mm;
+        display: block;
+        overflow: visible;
       `;
 
       answeredQuestions.forEach((q) => {
         const answerItem = document.createElement("div");
         answerItem.style.cssText = `
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+          display: inline-block;
+          width: 30mm;
+          margin: 2mm;
           padding: 2mm 3mm;
           background-color: white;
           border: 1px solid #ccc;
           border-radius: 2mm;
+          text-align: center;
         `;
 
         const qNum = document.createElement("strong");
         const questionIndex = testQuestions.findIndex(tq => tq.id === q.id) + 1;
-        qNum.textContent = `${questionIndex}.`;
-        qNum.style.cssText = `color: #000;`;
+        qNum.textContent = `${questionIndex}. `;
+        qNum.style.cssText = `color: #000; display: inline;`;
 
         const correctAnswer = document.createElement("span");
         correctAnswer.textContent = String.fromCharCode(65 + (q.correctAnswer || 0));
@@ -390,6 +404,7 @@ export function generateTestPDFContent(
           font-weight: bold;
           color: #2196F3;
           font-size: 11pt;
+          display: inline;
         `;
 
         answerItem.appendChild(qNum);
@@ -419,7 +434,7 @@ export function generatePDFPreviewContent(
 }
 
 /**
- * PDF export işlemi - DOM oluşturma ve render sırasını düzeltildi
+ * PDF export işlemi - İyileştirilmiş ve daha güvenilir yaklaşım
  */
 export async function exportTestToPDF(
   test: Test, 
@@ -430,31 +445,33 @@ export async function exportTestToPDF(
   try {
     console.log('Modern PDF export başlıyor...');
     
-    // 1. Önce DOM elementini oluştur
+    // 1. DOM elementini oluştur
     const element = generateTestPDFContent(test, questions, categories, settings);
     
-    // 2. DOM'a ekle (görünmez şekilde)
-    element.style.position = 'absolute';
-    element.style.left = '-9999px';
+    // 2. DOM'a ekle (görünmez ama render edilebilir şekilde)
+    element.style.opacity = '0';
+    element.style.position = 'fixed';
     element.style.top = '0';
-    element.style.visibility = 'hidden';
+    element.style.left = '0';
+    element.style.zIndex = '-1';
+    element.style.pointerEvents = 'none';
     document.body.appendChild(element);
     
     console.log('DOM elementi oluşturuldu ve eklendi');
     
-    // 3. DOM'un tam olarak render olması için bekle
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // 3. DOM'un tamamen render olması için bekle
+    await new Promise(resolve => setTimeout(resolve, 3000));
     
-    // 4. KaTeX elementlerinin render olmasını bekle
+    // 4. KaTeX elementleri varsa ekstra render süresi bekle
     const katexElements = element.querySelectorAll('.katex');
     if (katexElements.length > 0) {
       console.log(`${katexElements.length} KaTeX elementi bulundu, render bekleniyor...`);
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 2500));
     }
     
     console.log('DOM render tamamlandı, PDF oluşturuluyor...');
 
-    // 5. PDF seçenekleri
+    // 5. PDF seçenekleri - İyileştirilmiş
     const options = {
       margin: [10, 10, 10, 10],
       filename: `${test.title.replace(/[^\w\d\s]/g, "_")}.pdf`,
@@ -466,19 +483,19 @@ export async function exportTestToPDF(
         scale: 1.5,
         useCORS: true,
         allowTaint: true,
-        logging: false,
+        logging: true,
         letterRendering: true,
         foreignObjectRendering: true,
         scrollX: 0,
         scrollY: 0,
-        windowWidth: 794,
-        windowHeight: 1123,
         onclone: function(clonedDoc: Document) {
           console.log('Canvas klonlama işlemi başladı');
-          // Klonlanan dokümanda da stillerin düzgün yüklenmesini sağla
-          const clonedElement = clonedDoc.querySelector('div');
+          // Klonlanan dokümanda elementi görünür yap
+          const clonedElement = clonedDoc.querySelector('div[style*="position: fixed"]');
           if (clonedElement) {
-            clonedElement.style.visibility = 'visible';
+            (clonedElement as HTMLElement).style.opacity = '1';
+            (clonedElement as HTMLElement).style.position = 'relative';
+            (clonedElement as HTMLElement).style.zIndex = '1';
           }
         }
       },
@@ -505,8 +522,15 @@ export async function exportTestToPDF(
   } catch (error) {
     console.error('PDF oluşturulurken hata:', error);
     
+    // Detaylı hata mesajı
+    if (error instanceof Error) {
+      alert('PDF oluşturulurken bir hata oluştu: ' + error.message);
+    } else {
+      alert('PDF oluşturulurken bilinmeyen bir hata oluştu.');
+    }
+    
     // Hata durumunda da temizlik yap
-    const existingElement = document.querySelector('div[style*="position: absolute"][style*="left: -9999px"]');
+    const existingElement = document.querySelector('div[style*="position: fixed"][style*="z-index: -1"]');
     if (existingElement) {
       document.body.removeChild(existingElement);
     }

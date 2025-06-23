@@ -14,7 +14,11 @@ export class QuestionService {
     }
   }
 
-  static async create(questionData: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>): Promise<Question> {
+  static async create(
+    questionData: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>, 
+    userId?: string, 
+    userName?: string
+  ): Promise<Question> {
     const question: Question = {
       ...questionData,
       id: crypto.randomUUID(),
@@ -23,8 +27,12 @@ export class QuestionService {
     };
     
     try {
-      // Firebase'e ekle
-      const docRef = await addDoc(collection(firebaseDb, 'questions'), question);
+      // Firebase'e kullanıcı bilgileriyle birlikte ekle
+      const docRef = await addDoc(collection(firebaseDb, 'questions'), {
+        ...question,
+        createdBy: userId || 'unknown',
+        createdByName: userName || 'Anonim Kullanıcı'
+      });
       return { ...question, id: docRef.id };
     } catch (error) {
       console.error('Failed to add question:', error);

@@ -28,6 +28,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function Questions() {
   const {
@@ -44,6 +45,8 @@ export default function Questions() {
     addQuestion,
     addTest
   } = useQuestionStore();
+
+  const { userProfile } = useAuth();
 
   // Dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -211,7 +214,7 @@ export default function Questions() {
   };
 
   const handleCreateQuestion = async (questionData: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>) => {
-    await addQuestion(questionData);
+    await addQuestion(questionData, userProfile?.uid, userProfile?.displayName);
   };
 
   const getCategoryById = (id: string) => {

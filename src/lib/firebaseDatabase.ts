@@ -12,15 +12,20 @@ import {
   orderBy,
   setDoc
 } from 'firebase/firestore';
-import { db } from './firebase';
+import { db } from '@/lib/firebase';
 import { Question, Category, Test } from '@/types';
 
 export class FirebaseDatabase {
   // Questions Collection
-  async addQuestion(question: Question): Promise<void> {
+  async addQuestion(question: Question, userId?: string, userName?: string): Promise<void> {
     try {
       const docRef = doc(collection(db, 'questions'));
-      const questionWithId = { ...question, id: docRef.id };
+      const questionWithId = { 
+        ...question, 
+        id: docRef.id,
+        createdBy: userId || 'unknown',
+        createdByName: userName || 'Anonim Kullanıcı'
+      };
       await setDoc(docRef, questionWithId);
     } catch (error) {
       console.error('Error adding question:', error);
@@ -45,12 +50,10 @@ export class FirebaseDatabase {
   async updateQuestion(question: Question): Promise<void> {
     try {
       const questionRef = doc(db, 'questions', question.id);
-      // Check if document exists first
       const docSnap = await getDoc(questionRef);
       if (docSnap.exists()) {
         await updateDoc(questionRef, { ...question });
       } else {
-        // If document doesn't exist, create it
         await setDoc(questionRef, question);
       }
     } catch (error) {
@@ -119,10 +122,15 @@ export class FirebaseDatabase {
   }
 
   // Tests Collection
-  async addTest(test: Test): Promise<void> {
+  async addTest(test: Test, userId?: string, userName?: string): Promise<void> {
     try {
       const docRef = doc(collection(db, 'tests'));
-      const testWithId = { ...test, id: docRef.id };
+      const testWithId = { 
+        ...test, 
+        id: docRef.id,
+        createdBy: userId || 'unknown',
+        createdByName: userName || 'Anonim Kullanıcı'
+      };
       await setDoc(docRef, testWithId);
     } catch (error) {
       console.error('Error adding test:', error);
@@ -170,7 +178,6 @@ export class FirebaseDatabase {
 
   // Init method for compatibility
   async init(): Promise<void> {
-    // Firebase otomatik olarak bağlantı kurar, ekstra init gerekmez
     console.log('Firebase Database initialized');
   }
 }

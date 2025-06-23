@@ -19,13 +19,13 @@ interface QuestionStore {
   loadQuestions: () => Promise<void>;
   loadCategories: () => Promise<void>;
   loadTests: () => Promise<void>;
-  addQuestion: (question: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
+  addQuestion: (question: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>, userId?: string, userName?: string) => Promise<void>;
   updateQuestion: (question: Question) => Promise<void>;
   deleteQuestion: (id: string) => Promise<void>;
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => Promise<void>;
   updateCategory: (category: Category) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
-  addTest: (testData: Omit<Test, 'id' | 'createdAt'>) => Promise<void>;
+  addTest: (testData: Omit<Test, 'id' | 'createdAt'>, userId?: string, userName?: string) => Promise<void>;
   updateTest: (test: Test) => Promise<void>;
   deleteTest: (id: string) => Promise<void>;
   addSampleQuestions: () => Promise<void>;
@@ -90,9 +90,9 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
     }
   },
 
-  addQuestion: async (questionData) => {
+  addQuestion: async (questionData, userId, userName) => {
     try {
-      const question = await QuestionService.create(questionData);
+      const question = await QuestionService.create(questionData, userId, userName);
       set(state => ({ questions: [...state.questions, question] }));
     } catch (error) {
       console.error('Failed to add question:', error);
@@ -152,9 +152,9 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
     }
   },
 
-  addTest: async (testData) => {
+  addTest: async (testData, userId, userName) => {
     try {
-      const test = await TestService.create(testData);
+      const test = await TestService.create(testData, userId, userName);
       set(state => ({ tests: [...state.tests, test] }));
     } catch (error) {
       console.error('Failed to add test:', error);

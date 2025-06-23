@@ -14,7 +14,11 @@ export class TestService {
     }
   }
 
-  static async create(testData: Omit<Test, 'id' | 'createdAt'>): Promise<Test> {
+  static async create(
+    testData: Omit<Test, 'id' | 'createdAt'>, 
+    userId?: string, 
+    userName?: string
+  ): Promise<Test> {
     const test: Test = {
       ...testData,
       id: crypto.randomUUID(),
@@ -22,8 +26,12 @@ export class TestService {
     };
     
     try {
-      // Firebase'e ekle
-      const docRef = await addDoc(collection(firebaseDb, 'tests'), test);
+      // Firebase'e kullanıcı bilgileriyle birlikte ekle
+      const docRef = await addDoc(collection(firebaseDb, 'tests'), {
+        ...test,
+        createdBy: userId || 'unknown',
+        createdByName: userName || 'Anonim Kullanıcı'
+      });
       return { ...test, id: docRef.id };
     } catch (error) {
       console.error('Failed to add test:', error);

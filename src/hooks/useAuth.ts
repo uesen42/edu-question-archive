@@ -11,6 +11,7 @@ import {
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
+import { LogService } from '@/services/logService';
 
 interface UserProfile {
   uid: string;
@@ -32,6 +33,9 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Admin UID listesi
+const ADMIN_UIDS = ['OtXGIVXiOBeDVnpRZArp4e3lzD12'];
+
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
@@ -51,11 +55,33 @@ export function useAuthProvider() {
       setUser(user);
       
       if (user) {
-        // Kullanıcı profil bilgilerini al
+        // Admin kontrolü yap
+        const isUserAdmin = ADMIN_UIDS.includes(user.uid);
+        
+        // Kullanıcı profil bilgilerini al veya oluştur
         const userDoc = await getDoc(doc(db, 'users', user.uid));
+        
+        let profile: UserProfile;
         if (userDoc.exists()) {
-          setUserProfile(userDoc.data() as UserProfile);
+          profile = userDoc.data() as UserProfile;
+          // Admin durumunu güncelle
+          if (profile.role !== (isUserAdmin ? 'admin' : 'user')) {
+            profile = { ...profile, role: isUserAdmin ? 'admin' : 'user' };
+            await setDoc(doc(db, 'users', user.uid), profile);
+          }
+        } else {
+          // Yeni kullanıcı profili oluştur
+          profile = {
+            uid: user.uid,
+            email: user.email!,
+            displayName: user.displayName || 'Kullanıcı',
+            role: isUserAdmin ? 'admin' : 'user',
+            createdAt: new Date(),
+          };
+          await setDoc(doc(db, 'users', user.uid), profile);
         }
+        
+        setUserProfile(profile);
       } else {
         setUserProfile(null);
       }
@@ -68,7 +94,15 @@ export function useAuthProvider() {
 
   const login = async (email: string, password: string) => {
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Login log kaydı
+      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
+      if (userDoc.exists()) {
+        const profile = userDoc.data() as UserProfile;
+        await LogService.logLogin(profile.uid, profile.displayName);
+      }
+      
       toast({
         title: 'Başarılı',
         description: 'Giriş yapıldı.',
@@ -90,12 +124,15 @@ export function useAuthProvider() {
       // Profil güncelle
       await updateProfile(user, { displayName });
       
+      // Admin kontrolü
+      const isUserAdmin = ADMIN_UIDS.includes(user.uid);
+      
       // Firestore'a kullanıcı bilgilerini kaydet
       const userProfile: UserProfile = {
         uid: user.uid,
         email: user.email!,
         displayName,
-        role: 'user', // Varsayılan rol
+        role: isUserAdmin ? 'admin' : 'user',
         createdAt: new Date(),
       };
       
@@ -118,6 +155,11 @@ export function useAuthProvider() {
 
   const logout = async () => {
     try {
+      // Logout log kaydı
+      if (userProfile) {
+        await LogService.logLogout(userProfile.uid, userProfile.displayName);
+      }
+      
       await signOut(auth);
       toast({
         title: 'Başarılı',

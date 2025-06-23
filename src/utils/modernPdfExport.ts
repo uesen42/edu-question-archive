@@ -419,7 +419,7 @@ export function generatePDFPreviewContent(
 }
 
 /**
- * PDF export işlemi
+ * PDF export işlemi - DOM oluşturma ve render sırasını düzeltildi
  */
 export async function exportTestToPDF(
   test: Test, 
@@ -430,17 +430,31 @@ export async function exportTestToPDF(
   try {
     console.log('Modern PDF export başlıyor...');
     
+    // 1. Önce DOM elementini oluştur
     const element = generateTestPDFContent(test, questions, categories, settings);
     
-    // DOM'a ekle
+    // 2. DOM'a ekle (görünmez şekilde)
     element.style.position = 'absolute';
     element.style.left = '-9999px';
     element.style.top = '0';
+    element.style.visibility = 'hidden';
     document.body.appendChild(element);
     
-    // Render için bekle
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log('DOM elementi oluşturuldu ve eklendi');
+    
+    // 3. DOM'un tam olarak render olması için bekle
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // 4. KaTeX elementlerinin render olmasını bekle
+    const katexElements = element.querySelectorAll('.katex');
+    if (katexElements.length > 0) {
+      console.log(`${katexElements.length} KaTeX elementi bulundu, render bekleniyor...`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+    }
+    
+    console.log('DOM render tamamlandı, PDF oluşturuluyor...');
 
+    // 5. PDF seçenekleri
     const options = {
       margin: [10, 10, 10, 10],
       filename: `${test.title.replace(/[^\w\d\s]/g, "_")}.pdf`,
@@ -458,7 +472,15 @@ export async function exportTestToPDF(
         scrollX: 0,
         scrollY: 0,
         windowWidth: 794,
-        windowHeight: 1123
+        windowHeight: 1123,
+        onclone: function(clonedDoc: Document) {
+          console.log('Canvas klonlama işlemi başladı');
+          // Klonlanan dokümanda da stillerin düzgün yüklenmesini sağla
+          const clonedElement = clonedDoc.querySelector('div');
+          if (clonedElement) {
+            clonedElement.style.visibility = 'visible';
+          }
+        }
       },
       jsPDF: {
         unit: "mm",
@@ -471,15 +493,24 @@ export async function exportTestToPDF(
       }
     };
 
+    // 6. PDF oluştur ve kaydet
     await html2pdf().set(options).from(element).save();
     
-    console.log('PDF başarıyla oluşturuldu');
+    console.log('PDF başarıyla oluşturuldu ve kaydedildi');
 
-    // Temizlik
+    // 7. Temizlik - DOM'dan elementi kaldır
     document.body.removeChild(element);
+    console.log('DOM temizlendi');
     
   } catch (error) {
     console.error('PDF oluşturulurken hata:', error);
+    
+    // Hata durumunda da temizlik yap
+    const existingElement = document.querySelector('div[style*="position: absolute"][style*="left: -9999px"]');
+    if (existingElement) {
+      document.body.removeChild(existingElement);
+    }
+    
     throw error;
   }
 }

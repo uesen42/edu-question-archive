@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -29,6 +30,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/useAuth';
+import { LogService } from '@/services/logService';
 
 export default function Questions() {
   const {
@@ -46,7 +48,7 @@ export default function Questions() {
     addTest
   } = useQuestionStore();
 
-  const { userProfile } = useAuth();
+  const { userProfile, isAdmin } = useAuth();
 
   // Dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -102,18 +104,39 @@ export default function Questions() {
   };
 
   const handleDelete = async (id: string) => {
+    // Sadece admin soru silebilir
+    if (!isAdmin) {
+      alert('Bu işlem için admin yetkisi gereklidir.');
+      return;
+    }
+    
     if (window.confirm('Bu soruyu silmek istediğinizden emin misiniz?')) {
+      const question = questions.find(q => q.id === id);
+      if (question && userProfile) {
+        await LogService.logActivity(
+          userProfile.uid, 
+          userProfile.displayName, 
+          'Soru Silindi', 
+          { questionTitle: question.title }, 
+          'question'
+        );
+      }
       await deleteQuestion(id);
     }
   };
 
-  const handleView = (question: Question) => {
+  const handleView = async (question: Question) => {
     // Görüntüleme sayısını artır
     const updatedQuestion = { 
       ...question, 
       viewCount: (question.viewCount || 0) + 1 
     };
-    updateQuestion(updatedQuestion);
+    await updateQuestion(updatedQuestion);
+    
+    // Log kaydı
+    if (userProfile) {
+      await LogService.logQuestionView(userProfile.uid, userProfile.displayName, question.title);
+    }
     
     setSelectedQuestion(question);
     setViewDialogOpen(true);
@@ -138,15 +161,29 @@ export default function Questions() {
       updatedAt: new Date(),
     };
     
-    // TODO: Implement addQuestion in store
-    console.log('Duplicate question:', duplicatedQuestion);
+    if (userProfile) {
+      await addQuestion(duplicatedQuestion, userProfile.uid, userProfile.displayName);
+      await LogService.logQuestionCreate(userProfile.uid, userProfile.displayName, duplicatedQuestion.title);
+    }
   };
 
   const handleSaveQuestion = async (question: Question) => {
     await updateQuestion(question);
+    if (userProfile) {
+      await LogService.logQuestionUpdate(userProfile.uid, userProfile.displayName, question.title);
+    }
   };
 
   const handleExportAllImages = async () => {
+    // Sadece admin resim indirebilir
+    if (!isAdmin) {
+      alert('Bu işlem için admin yetkisi gereklidir.');
+      return;
+    }
+    
+    if (userProfile) {
+      await LogService.logExport(userProfile.uid, userProfile.displayName, 'Tüm Sorular Resim', sortedQuestions.length);
+    }
     await exportAllQuestionsToImages(sortedQuestions, categories, true);
   };
 
@@ -174,7 +211,18 @@ export default function Questions() {
   };
 
   const handleExportSelectedImages = async () => {
+    // Sadece admin resim indirebilir
+    if (!isAdmin) {
+      alert('Bu işlem için admin yetkisi gereklidir.');
+      return;
+    }
+    
     const selectedQuestionsList = sortedQuestions.filter(q => selectedQuestions.has(q.id));
+    
+    if (userProfile) {
+      await LogService.logExport(userProfile.uid, userProfile.displayName, 'Seçili Sorular Resim', selectedQuestionsList.length);
+    }
+    
     for (let i = 0; i < selectedQuestionsList.length; i++) {
       const question = selectedQuestionsList[i];
       const category = categories.find(cat => cat.id === question.categoryId);
@@ -208,6 +256,11 @@ export default function Questions() {
     };
 
     await addTest(testData);
+    
+    if (userProfile) {
+      await LogService.logTestCreate(userProfile.uid, userProfile.displayName, testTitle);
+    }
+    
     alert(`"${testTitle}" adlı test ${selectedQuestions.size} soru ile oluşturuldu!`);
     setSelectedQuestions(new Set());
     setIsSelectionMode(false);
@@ -215,6 +268,9 @@ export default function Questions() {
 
   const handleCreateQuestion = async (questionData: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>) => {
     await addQuestion(questionData, userProfile?.uid, userProfile?.displayName);
+    if (userProfile) {
+      await LogService.logQuestionCreate(userProfile.uid, userProfile.displayName, questionData.title);
+    }
   };
 
   const getCategoryById = (id: string) => {
@@ -236,14 +292,16 @@ export default function Questions() {
         <div className="flex gap-2">
           {!isSelectionMode ? (
             <>
-              <Button 
-                variant="outline"
-                onClick={handleExportAllImages}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Resim Olarak İndir
-              </Button>
+              {isAdmin && (
+                <Button 
+                  variant="outline"
+                  onClick={handleExportAllImages}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Resim Olarak İndir
+                </Button>
+              )}
               <Button 
                 variant="outline"
                 onClick={handleToggleSelectionMode}
@@ -276,14 +334,16 @@ export default function Questions() {
               </Button>
               {selectedQuestions.size > 0 && (
                 <>
-                  <Button 
-                    variant="outline"
-                    onClick={handleExportSelectedImages}
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Resim İndir ({selectedQuestions.size})
-                  </Button>
+                  {isAdmin && (
+                    <Button 
+                      variant="outline"
+                      onClick={handleExportSelectedImages}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Resim İndir ({selectedQuestions.size})
+                    </Button>
+                  )}
                   <Button 
                     variant="outline"
                     onClick={handleCreateTestFromSelected}
@@ -394,10 +454,10 @@ export default function Questions() {
               question={question}
               category={getCategoryById(question.categoryId)}
               onEdit={handleEdit}
-              onDelete={handleDelete}
+              onDelete={isAdmin ? handleDelete : undefined}
               onView={handleView}
               onToggleFavorite={handleToggleFavorite}
-              onExport={(q) => exportQuestionToImage(q, 1, getCategoryById(q.categoryId), true)}
+              onExport={isAdmin ? (q) => exportQuestionToImage(q, 1, getCategoryById(q.categoryId), true) : undefined}
               onDuplicate={handleDuplicate}
               isSelected={selectedQuestions.has(question.id)}
               onSelect={isSelectionMode ? handleSelectQuestion : undefined}

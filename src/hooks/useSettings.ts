@@ -1,23 +1,58 @@
+
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuestionStore } from '@/store/questionStore';
 
 interface SettingsState {
+  // Site Settings
+  siteTitle: string;
+  schoolName: string;
+  teacherName: string;
+  language: string;
+  
+  // General Settings
   darkMode: boolean;
   autoSave: boolean;
+  showStats: boolean;
   questionsPerPage: number;
+  
+  // PDF Settings
   pdfTitle: string;
   pdfSubtitle: string;
   showAnswers: boolean;
+  showCategoryInfo: boolean;
+  questionsPerRow: number;
+  
+  // Security Settings
+  backupReminder: boolean;
+  confirmDelete: boolean;
+  backupFrequency: string;
 }
 
 const defaultSettings: SettingsState = {
+  // Site Settings
+  siteTitle: 'Soru Bankası Sistemi',
+  schoolName: '',
+  teacherName: '',
+  language: 'tr',
+  
+  // General Settings
   darkMode: false,
   autoSave: true,
+  showStats: true,
   questionsPerPage: 12,
+  
+  // PDF Settings
   pdfTitle: 'Test Soruları',
   pdfSubtitle: 'Okul Adı / Tarih',
   showAnswers: false,
+  showCategoryInfo: true,
+  questionsPerRow: 2,
+  
+  // Security Settings
+  backupReminder: true,
+  confirmDelete: true,
+  backupFrequency: 'weekly',
 };
 
 export function useSettings() {
@@ -29,7 +64,9 @@ export function useSettings() {
     const savedSettings = localStorage.getItem('app-settings');
     if (savedSettings) {
       try {
-        setSettings(JSON.parse(savedSettings));
+        const parsedSettings = JSON.parse(savedSettings);
+        // Merge with default settings to ensure all properties exist
+        setSettings({ ...defaultSettings, ...parsedSettings });
       } catch (error) {
         console.error('Failed to parse saved settings:', error);
       }

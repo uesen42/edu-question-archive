@@ -154,10 +154,14 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
 
   addTest: async (testData, userId, userName) => {
     try {
+      console.log('addTest çağrıldı:', { testData, userId, userName });
       const test = await TestService.create(testData, userId, userName);
+      console.log('Test oluşturuldu:', test);
       set(state => ({ tests: [...state.tests, test] }));
+      console.log('State güncellendi');
     } catch (error) {
       console.error('Failed to add test:', error);
+      throw error;
     }
   },
 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Question, Category, Test } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,12 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { MathRenderer } from '@/components/MathRenderer';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TestEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   test: Test | null;
-  onSave: (test: Omit<Test, 'id' | 'createdAt'>) => void;
+  onSave: (test: Omit<Test, 'id' | 'createdAt'>, userId?: string, userName?: string) => void;
   questions: Question[];
   categories: Category[];
 }
@@ -31,6 +31,8 @@ export function TestEditDialog({
   questions,
   categories
 }: TestEditDialogProps) {
+  const { userProfile } = useAuth();
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -92,7 +94,9 @@ export function TestEditDialog({
           timeLimit: formData.timeLimit ? parseInt(formData.timeLimit) : undefined
         }
       };
-      onSave(testData);
+      
+      // Kullanıcı bilgilerini de gönder
+      onSave(testData, userProfile?.uid, userProfile?.displayName);
       onOpenChange(false);
     }
   };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Question, Category, Test } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -13,11 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { MathRenderer } from '@/components/MathRenderer';
+import { useAuth } from '@/hooks/useAuth';
 
 interface TestCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (test: Omit<Test, 'id' | 'createdAt'>) => void;
+  onSave: (test: Omit<Test, 'id' | 'createdAt'>, userId?: string, userName?: string) => void;
   questions: Question[];
   categories: Category[];
 }
@@ -29,13 +29,15 @@ export function TestCreateDialog({
   questions,
   categories
 }: TestCreateDialogProps) {
+  const { userProfile } = useAuth();
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     selectedQuestionIds: [] as string[],
     showAnswers: false,
     randomizeOrder: false,
-    showOptions: true, // Yeni alan: şıkları göster
+    showOptions: true,
     timeLimit: ''
   });
 
@@ -78,7 +80,9 @@ export function TestCreateDialog({
             { timeLimit: parseInt(formData.timeLimit) } : {})
         }
       };
-      onSave(testData);
+      
+      // Kullanıcı bilgilerini de gönder
+      onSave(testData, userProfile?.uid, userProfile?.displayName);
       onOpenChange(false);
       // Reset form
       setFormData({

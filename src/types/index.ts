@@ -1,4 +1,3 @@
-
 export interface Question {
   id: string;
   title: string;
@@ -15,6 +14,7 @@ export interface Question {
   usageCount?: number; // Kullanım sayısı
   options?: string[]; // Çoktan seçmeli soru seçenekleri
   correctAnswer?: number; // Doğru cevap index'i
+  createdByName?: string; // Soruyu oluşturan kullanıcının adı
 }
 
 export interface Category {

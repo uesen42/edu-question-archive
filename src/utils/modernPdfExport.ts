@@ -1,4 +1,4 @@
-//src/utils/modernPDFExport.ts
+//src/utils/modernPdfExport.ts
 import { Test, Question, Category } from '@/types';
 import katex from 'katex';
 import html2pdf from 'html2pdf.js';

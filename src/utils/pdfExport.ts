@@ -1,56 +1,55 @@
-//src/utils/pdfExport.ts
-import { Test, Question, Category } from '@/types';
-import { exportTestToPDF as modernExportTestToPDF, PDFExportSettings, defaultPDFSettings } from './modernPdfExport';
+// src/utils/pdfExport.ts
 
-// Modern PDF export fonksiyonunu kullan
-export const exportTestToPDF = async (
-  test: Test,
-  questions: Question[],
-  categories: Category[],
-  settings: PDFExportSettings = defaultPDFSettings
-) => {
+import html2pdf from 'html2pdf.js';
+
+/**
+ * Basit bir test içeriği oluşturan fonksiyon
+ */
+export function generateBasicPDFContent(testTitle: string): HTMLElement {
+  const container = document.createElement('div');
+  container.style.padding = '20px';
+  container.style.fontFamily = 'Arial, sans-serif';
+  container.style.fontSize = '16px';
+  container.style.lineHeight = '1.5';
+
+  // Başlık
+  const title = document.createElement('h1');
+  title.textContent = testTitle;
+  title.style.textAlign = 'center';
+  title.style.marginBottom = '20px';
+  container.appendChild(title);
+
+  // Açıklama
+  const description = document.createElement('p');
+  description.textContent = 'Bu bir örnek testtir. PDF çıktısı başarıyla oluşturuldu.';
+  description.style.textAlign = 'center';
+  container.appendChild(description);
+
+  return container;
+}
+
+/**
+ * PDF'i tarayıcıdan indirmek için fonksiyon
+ */
+export async function exportToPDF(testTitle: string) {
+  const content = generateBasicPDFContent(testTitle);
+  document.body.appendChild(content); // DOM'a ekle
+
+  const options = {
+    margin:       10,
+    filename:     `${testTitle.replace(/[^\w\d]/g, '_')}.pdf`,
+    image:        { type: 'jpeg', quality: 0.95 },
+    html2canvas:  { scale: 2, useCORS: true, logging: false },
+    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+  };
+
   try {
-    console.log('PDF oluşturma işlemi modern sistem ile başlıyor...');
-    await modernExportTestToPDF(test, questions, categories, settings);
+    await html2pdf().set(options).from(content).save();
+    console.log('PDF başarıyla indirildi.');
   } catch (error) {
-    console.error('Modern PDF export hatası:', error);
-    
-    // Yedek JSON export
-    const testQuestions = questions.filter(q => test.questionIds.includes(q.id));
-    const exportData = {
-      test: {
-        title: test.title,
-        description: test.description,
-        createdAt: test.createdAt,
-        settings: test.settings
-      },
-      questions: testQuestions.map((q, index) => ({
-        number: index + 1,
-        title: q.title,
-        content: q.content,
-        category: categories.find(cat => cat.id === q.categoryId)?.name || 'Bilinmeyen',
-        options: test.settings.showOptions && q.options ? q.options : undefined,
-        correctAnswer: q.correctAnswer
-      })),
-      exportDate: new Date().toISOString(),
-      note: "PDF oluşturulamadı, yedek JSON dosyası oluşturuldu"
-    };
-
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], {
-      type: 'application/json',
-    });
-    
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `test-${test.title.replace(/[^a-zA-Z0-9çğıöşüÇĞIİÖŞÜ]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    console.log('Yedek JSON dosyası oluşturuldu');
+    console.error('PDF indirme hatası:', error);
+    alert('PDF indirilemedi.');
+  } finally {
+    document.body.removeChild(content); // Temizlik
   }
-};
-
-export type { PDFExportSettings, defaultPDFSettings } from './modernPdfExport';
+}

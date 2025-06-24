@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { Sidebar, SidebarContent, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
@@ -39,3 +38,5 @@ export default function Layout() {
     </SidebarProvider>
   );
 }
+
+export default Layout;

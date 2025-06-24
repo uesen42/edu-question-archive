@@ -5,7 +5,7 @@ import { Test, Question, Category } from '@/types';
 /**
  * Türkçe karakterleri LaTeX uyumlu hale getirir
  */
-function sanitizeTurkishChars(text: string): string {
+export function sanitizeTurkishChars(text: string): string {
   return text
     .replace(/ş/g, 's')
     .replace(/Ş/g, 'S')
@@ -24,7 +24,7 @@ function sanitizeTurkishChars(text: string): string {
 /**
  * Matematik sembollerini Unicode karakterlere çevirir
  */
-function parseMathSymbols(content: string): string {
+export function parseMathSymbols(content: string): string {
   let parsed = content;
   
   // LaTeX matematik sembollerini Unicode'a çevir

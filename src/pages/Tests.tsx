@@ -48,6 +48,7 @@ import { exportTestToPDF, generatePDFPreviewContent } from '@/utils/pdfExport';
 import { TestSimulationDialog } from '@/components/TestSimulationDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { LogService } from '@/services/logService';
+import { PDFPreviewDialog } from '@/components/PDFPreviewDialog';
 
 export default function Tests() {
   const { userProfile } = useAuth();
@@ -145,26 +146,31 @@ export default function Tests() {
     }
   };
 
-  const handleDownloadTest = async (test: Test) => {
-    try {
-      await exportTestToPDF(test, questions, categories);
-      if (userProfile) {
-        await LogService.logExport(userProfile.uid, userProfile.displayName, 'Test PDF', 1);
-      }
-    } catch (error) {
-      console.error('PDF indirme hatası:', error);
-      alert('PDF oluşturulamadı. Lütfen tekrar deneyin.');
-    }
-  };
-
   const handlePreviewTest = async (test: Test) => {
     try {
       const htmlContent = generatePDFPreviewContent(test, questions, categories);
       setPreviewHTML(htmlContent);
       setShowPDFPreview(true);
+      
+      if (userProfile) {
+        await LogService.logTestPreview(userProfile.uid, userProfile.displayName, test.id);
+      }
     } catch (error) {
       console.error('PDF önizleme hatası:', error);
       alert('PDF önizleme oluşturulamadı.');
+    }
+  };
+
+  const handleDownloadTest = async (test: Test) => {
+    try {
+      await exportTestToPDF(test, questions, categories);
+      
+      if (userProfile) {
+        await LogService.logTestDownload(userProfile.uid, userProfile.displayName, test.id);
+      }
+    } catch (error) {
+      console.error('PDF oluşturulurken hata:', error);
+      alert('PDF oluşturulamadı.');
     }
   };
 
@@ -384,13 +390,10 @@ export default function Tests() {
                           <Edit2 className="h-4 w-4 mr-2" /> Düzenle
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleSimulateTest(test)}>
-                          <Clock className="h-4 w-4 mr-2" /> Testi Çöz
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicateTest(test)}>
-                          <Copy className="h-4 w-4 mr-2" /> Kopyala
+                          <Users className="h-4 w-4 mr-2" /> Simülasyon
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handlePreviewTest(test)}>
-                          <Printer className="h-4 w-4 mr-2" /> PDF Önizleme
+                          <Printer className="h-4 w-4 mr-2" /> PDF Önizle
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownloadTest(test)}>
                           <Download className="h-4 w-4 mr-2" /> PDF İndir
@@ -501,14 +504,12 @@ export default function Tests() {
         questions={questions}
         categories={categories}
       />
-
-      {/* PDF Önizleme Modalı */}
-      {showPDFPreview && (
-        <PDFPreviewDialog
-          htmlContent={previewHTML}
-          onClose={() => setShowPDFPreview(false)}
-        />
-      )}
+      <PDFPreviewDialog 
+        open={showPDFPreview}
+        htmlContent={previewHTML}
+        onClose={() => setShowPDFPreview(false)}
+        onDownload={() => selectedTest && handleDownloadTest(selectedTest)}
+      />
     </div>
   );
 }

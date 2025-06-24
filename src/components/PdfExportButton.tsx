@@ -1,16 +1,27 @@
 
 import React from 'react';
-import { exportTestToPDF } from '@/utils/modernPdfExport';
+import { exportTestToPDF, PDFExportSettings, defaultPDFSettings } from '@/utils/modernPdfExport';
+import { Test, Question, Category } from '@/types';
 
 interface Props {
-  testTitle: string;
+  test: Test;
+  questions: Question[];
+  categories: Category[];
+  settings?: PDFExportSettings;
 }
 
-export const PdfExportButton: React.FC<Props> = ({ testTitle }) => {
-  const handleExport = () => {
-    // Bu fonksiyon artık sadece test başlığı ile çalışamaz
-    // Test objesi, sorular ve kategoriler gerekli
-    console.log('PDF export için test objesi gerekli:', testTitle);
+export const PdfExportButton: React.FC<Props> = ({ 
+  test, 
+  questions, 
+  categories, 
+  settings = defaultPDFSettings 
+}) => {
+  const handleExport = async () => {
+    try {
+      await exportTestToPDF(test, questions, categories, settings);
+    } catch (error) {
+      console.error('PDF export hatası:', error);
+    }
   };
 
   return (
@@ -23,9 +34,15 @@ export const PdfExportButton: React.FC<Props> = ({ testTitle }) => {
         border: 'none',
         borderRadius: '4px',
         cursor: 'pointer',
-        fontSize: '16px'
+        fontSize: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
       }}
     >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+      </svg>
       PDF Olarak İndir
     </button>
   );

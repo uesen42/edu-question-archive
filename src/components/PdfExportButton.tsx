@@ -1,7 +1,6 @@
-// src/components/PdfExportButton.tsx
 
 import React from 'react';
-import { exportToPDF } from '@/utils/pdfExport';
+import { exportTestToPDF } from '@/utils/modernPdfExport';
 
 interface Props {
   testTitle: string;
@@ -9,7 +8,9 @@ interface Props {
 
 export const PdfExportButton: React.FC<Props> = ({ testTitle }) => {
   const handleExport = () => {
-    exportToPDF(testTitle);
+    // Bu fonksiyon artık sadece test başlığı ile çalışamaz
+    // Test objesi, sorular ve kategoriler gerekli
+    console.log('PDF export için test objesi gerekli:', testTitle);
   };
 
   return (

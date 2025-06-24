@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Settings as SettingsIcon, Download, Upload, Trash2, FileText, Database, Globe, Shield } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 import { useQuestionStore } from '@/store/questionStore';
-import { exportTestToPDF } from '@/utils/pdfExport';
+import { exportTestToPDF } from '@/utils/modernPdfExport';
 
 export default function Settings() {
   const { settings, updateSetting, exportData, importData, clearAllData } = useSettings();

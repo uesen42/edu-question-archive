@@ -1,4 +1,5 @@
-
+//src/App.tsx
+import React from 'react';
 import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";

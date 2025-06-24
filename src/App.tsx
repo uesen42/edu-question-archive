@@ -5,7 +5,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { Layout } from "@/components/Layout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/components/AuthProvider";
@@ -23,6 +22,7 @@ const Categories = lazy(() => import("@/pages/Categories"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Students = lazy(() => import("@/pages/Students"));
+const Layout = lazy(() => import("@/components/Layout"));
 
 const queryClient = new QueryClient();
 
@@ -55,51 +55,14 @@ const App = () => {
                 <ErrorBoundary>
                   <Suspense fallback={<PageLoadingSkeleton />}>
                     <Routes>
-                      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                        <Route 
-                          index 
-                          element={<Dashboard />}
-                        />
-                        <Route 
-                          path="questions" 
-                          element={<Questions />}
-                        />
-                        <Route 
-                          path="tests" 
-                          element={<Tests />}
-                        />
-                        <Route 
-                          path="categories" 
-                          element={
-                            <ProtectedRoute adminOnly>
-                              <Categories />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route 
-                          path="analytics" 
-                          element={
-                            <ProtectedRoute adminOnly>
-                              <Analytics />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route 
-                          path="students" 
-                          element={
-                            <ProtectedRoute adminOnly>
-                              <Students />
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route 
-                          path="settings" 
-                          element={
-                            <ProtectedRoute adminOnly>
-                              <Settings />
-                            </ProtectedRoute>
-                          }
-                        />
+                      <Route path="/" element={<Layout />}>
+                        <Route index element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                        <Route path="questions" element={<ProtectedRoute><Questions /></ProtectedRoute>} />
+                        <Route path="tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
+                        <Route path="categories" element={<ProtectedRoute adminOnly><Categories /></ProtectedRoute>} />
+                        <Route path="analytics" element={<ProtectedRoute adminOnly><Analytics /></ProtectedRoute>} />
+                        <Route path="students" element={<ProtectedRoute adminOnly><Students /></ProtectedRoute>} />
+                        <Route path="settings" element={<ProtectedRoute adminOnly><Settings /></ProtectedRoute>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>

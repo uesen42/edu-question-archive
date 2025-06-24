@@ -420,7 +420,7 @@ export function generateTestPDFContent(
 
   return container;
 }
-
+  
 // ====================
 // PDF Export
 // ====================
@@ -442,58 +442,77 @@ export function generatePDFPreviewContent(
  * PDF export işlemi - İyileştirilmiş ve daha güvenilir yaklaşım.
  */
 export async function exportTestToPDF(
-  test: Test,
-  questions: Question[],
+  test: Test, 
+  questions: Question[], 
   categories: Category[],
   settings: PDFExportSettings = defaultPDFSettings
-): Promise<void> {
-  console.log('Modern PDF export başlıyor...');
+) {
+  try {
+    console.log('Modern PDF export başlıyor...');
+    
+    const element = generateTestPDFContent(test, questions, categories, settings);
 
-  // DOM elementi oluştur
-  const element = generateTestPDFContent(test, questions, categories, settings);
-  element.style.opacity = '0';
-  element.style.position = 'fixed';
-  element.style.top = '-9999px';
-  element.style.left = '-9999px';
-  element.style.zIndex = '-1';
-  element.style.pointerEvents = 'none';
+    // Elementi DOM’a ekle ama görünmez ama render edilebilir şekilde
+    element.style.position = 'absolute';
+    element.style.left = '-9999px';
+    element.style.top = '-9999px';
+    element.style.opacity = '1';
+    element.style.zIndex = '9999';
+    element.style.pointerEvents = 'none';
 
-  document.body.appendChild(element);
-  console.log('DOM elementi oluşturuldu ve eklendi');
+    document.body.appendChild(element);
+    console.log('DOM elementi oluşturuldu ve eklendi');
 
-  // DOM'un tamamen render olması için bekle
-  await waitForKatexRender(element);
-  console.log('DOM render tamamlandı, PDF oluşturuluyor...');
+    // DOM’un tam olarak render edilmesini bekle
+    await waitForRender(element);
+    console.log('DOM render tamamlandı');
 
-  // PDF ayarları
-  const options = {
-    margin: [10, 10, 10, 10],
-    filename: `${test.title.replace(/[^\w\d\s]/g, '_')}.pdf`,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: {
-      scale: 2,
-      useCORS: true,
-      allowTaint: false,
-      logging: true,
-      letterRendering: true,
-      foreignObjectRendering: true,
-      scrollX: 0,
-      scrollY: 0,
-      onclone: (clonedDoc: Document) => {
-        const clonedElement = clonedDoc.querySelector('.question-card');
-        if (clonedElement) {
-          clonedElement.scrollIntoView({ behavior: 'instant' });
-        }
+    // KaTeX varsa ekstra bekle
+    const katexElements = element.querySelectorAll('.katex');
+    if (katexElements.length > 0) {
+      console.log(`${katexElements.length} KaTeX elementi bulundu, render bekleniyor...`);
+      await waitForKatex(element);
+      console.log('KaTeX render tamamlandı');
+    }
+
+    // PDF ayarları
+    const options = {
+      margin: [10, 10, 10, 10],
+      filename: `${test.title.replace(/[^\w\d\s]/g, "_")}.pdf`,
+      image: { type: "jpeg", quality: 0.95 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        allowTaint: false,
+        logging: true,
+        letterRendering: true,
+        foreignObjectRendering: false,
+        scrollX: 0,
+        scrollY: 0
       },
-    },
-    jsPDF: {
-      unit: 'mm',
-      format: 'a4',
-      orientation: 'portrait',
-      compress: true,
-    },
-    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-  };
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait",
+        compress: true
+      },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    // PDF oluştur
+    await html2pdf().set(options).from(element).save();
+    console.log('PDF başarıyla oluşturuldu ve kaydedildi');
+
+    // Temizlik
+    document.body.removeChild(element);
+    console.log('DOM temizlendi');
+
+  } catch (error) {
+    console.error('PDF oluşturulurken hata:', error);
+    alert('PDF oluşturulurken bir hata oluştu.');
+    throw error;
+  }
+};
 
   // PDF oluştur ve kaydet
   await html2pdf().set(options).from(element).save();

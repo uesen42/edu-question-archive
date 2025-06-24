@@ -1,13 +1,15 @@
-import { useState, useEffect } from 'react';
+// src/pages/Tests.tsx
+
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  FileText, 
-  Calendar, 
+import {
+  Plus,
+  Search,
+  Filter,
+  FileText,
+  Calendar,
   Clock,
   Users,
   TrendingUp,
@@ -16,7 +18,8 @@ import {
   Trash2,
   Download,
   Eye,
-  Copy
+  Copy,
+  Printer,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -41,7 +44,7 @@ import { TestViewDialog } from '@/components/TestViewDialog';
 import { EmptyTestsState } from '@/components/EmptyTestsState';
 import { useQuestionStore } from '@/store/questionStore';
 import { Test } from '@/types';
-import { exportTestToPDF } from '@/utils/pdfExport';
+import { exportTestToPDF, generatePDFPreviewContent } from '@/utils/pdfExport';
 import { TestSimulationDialog } from '@/components/TestSimulationDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { LogService } from '@/services/logService';
@@ -57,17 +60,21 @@ export default function Tests() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'questions' | 'date'>('date');
   const [filterBy, setFilterBy] = useState<'all' | 'small' | 'medium' | 'large'>('all');
-  
-  const { 
-    tests, 
-    questions, 
-    categories, 
-    loadTests, 
-    loadQuestions, 
+
+  // PDF Önizleme
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [previewHTML, setPreviewHTML] = useState<string>('');
+
+  const {
+    tests,
+    questions,
+    categories,
+    loadTests,
+    loadQuestions,
     loadCategories,
     addTest,
     updateTest,
-    deleteTest: removeTestFromStore
+    deleteTest: removeTestFromStore,
   } = useQuestionStore();
 
   useEffect(() => {
@@ -76,10 +83,12 @@ export default function Tests() {
     loadCategories();
   }, [loadTests, loadQuestions, loadCategories]);
 
-  const handleCreateTest = async (testData: any, userId?: string, userName?: string) => {
-    await addTest(testData, userId, userName);
-    
-    // Log kaydı
+  // ======================
+  // İşlevsel Fonksiyonlar
+  // ======================
+
+  const handleCreateTest = async (testData: any) => {
+    await addTest(testData, userProfile?.uid, userProfile?.displayName);
     if (userProfile) {
       await LogService.logTestCreate(userProfile.uid, userProfile.displayName, testData.title);
     }
@@ -90,18 +99,16 @@ export default function Tests() {
     setIsTestEditOpen(true);
   };
 
-  const handleUpdateTest = async (testData: any, userId?: string, userName?: string) => {
+  const handleUpdateTest = async (testData: any) => {
     if (selectedTest) {
       await updateTest({ ...selectedTest, ...testData });
       setSelectedTest(null);
-      
-      // Log kaydı
       if (userProfile) {
         await LogService.logActivity(
-          userProfile.uid, 
-          userProfile.displayName, 
-          'Test Güncellendi', 
-          { testTitle: testData.title }, 
+          userProfile.uid,
+          userProfile.displayName,
+          'Test Güncellendi',
+          { testTitle: testData.title },
           'test'
         );
       }
@@ -125,33 +132,39 @@ export default function Tests() {
   const confirmDeleteTest = async () => {
     if (deleteTest) {
       await removeTestFromStore(deleteTest.id);
-      
-      // Log kaydı
       if (userProfile) {
         await LogService.logActivity(
-          userProfile.uid, 
-          userProfile.displayName, 
-          'Test Silindi', 
-          { testTitle: deleteTest.title }, 
+          userProfile.uid,
+          userProfile.displayName,
+          'Test Silindi',
+          { testTitle: deleteTest.title },
           'test'
         );
       }
-      
       setDeleteTest(null);
     }
   };
 
   const handleDownloadTest = async (test: Test) => {
-    exportTestToPDF(test, questions, categories);
-    
-    // Log kaydı
-    if (userProfile) {
-      await LogService.logExport(
-        userProfile.uid, 
-        userProfile.displayName, 
-        'Test PDF', 
-        1
-      );
+    try {
+      await exportTestToPDF(test, questions, categories);
+      if (userProfile) {
+        await LogService.logExport(userProfile.uid, userProfile.displayName, 'Test PDF', 1);
+      }
+    } catch (error) {
+      console.error('PDF indirme hatası:', error);
+      alert('PDF oluşturulamadı. Lütfen tekrar deneyin.');
+    }
+  };
+
+  const handlePreviewTest = async (test: Test) => {
+    try {
+      const htmlContent = generatePDFPreviewContent(test, questions, categories);
+      setPreviewHTML(htmlContent);
+      setShowPDFPreview(true);
+    } catch (error) {
+      console.error('PDF önizleme hatası:', error);
+      alert('PDF önizleme oluşturulamadı.');
     }
   };
 
@@ -159,17 +172,14 @@ export default function Tests() {
     const duplicatedTest = {
       ...test,
       title: `${test.title} (Kopya)`,
-      id: undefined // Will be generated by the store
     };
     await addTest(duplicatedTest, userProfile?.uid, userProfile?.displayName);
-    
-    // Log kaydı
     if (userProfile) {
       await LogService.logActivity(
-        userProfile.uid, 
-        userProfile.displayName, 
-        'Test Kopyalandı', 
-        { originalTitle: test.title, newTitle: duplicatedTest.title }, 
+        userProfile.uid,
+        userProfile.displayName,
+        'Test Kopyalandı',
+        { originalTitle: test.title, newTitle: duplicatedTest.title },
         'test'
       );
     }
@@ -182,14 +192,12 @@ export default function Tests() {
   };
 
   const filteredAndSortedTests = tests
-    .filter(test => {
-      const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           test.description.toLowerCase().includes(searchTerm.toLowerCase());
-      
+    .filter((test) => {
+      const matchesSearch =
+        test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        test.description?.toLowerCase().includes(searchTerm.toLowerCase());
       if (!matchesSearch) return false;
-      
       if (filterBy === 'all') return true;
-      
       const size = getTestSize(test.questionIds.length);
       return size === filterBy;
     })
@@ -207,11 +215,10 @@ export default function Tests() {
   const totalTests = tests.length;
   const totalQuestions = tests.reduce((sum, test) => sum + test.questionIds.length, 0);
   const averageQuestionsPerTest = totalTests > 0 ? Math.round(totalQuestions / totalTests) : 0;
-  
   const testsBySize = {
-    small: tests.filter(t => getTestSize(t.questionIds.length) === 'small').length,
-    medium: tests.filter(t => getTestSize(t.questionIds.length) === 'medium').length,
-    large: tests.filter(t => getTestSize(t.questionIds.length) === 'large').length,
+    small: tests.filter((t) => getTestSize(t.questionIds.length) === 'small').length,
+    medium: tests.filter((t) => getTestSize(t.questionIds.length) === 'medium').length,
+    large: tests.filter((t) => getTestSize(t.questionIds.length) === 'large').length,
   };
 
   return (
@@ -222,10 +229,7 @@ export default function Tests() {
           <h1 className="text-3xl font-bold text-gray-900">Testler</h1>
           <p className="text-gray-600 mt-2">Test oluşturun, düzenleyin ve yönetin</p>
         </div>
-        <Button 
-          className="flex items-center gap-2"
-          onClick={() => setIsTestCreateOpen(true)}
-        >
+        <Button className="flex items-center gap-2" onClick={() => setIsTestCreateOpen(true)}>
           <Plus className="h-4 w-4" />
           Yeni Test Oluştur
         </Button>
@@ -240,12 +244,9 @@ export default function Tests() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalTests}</div>
-            <p className="text-xs text-muted-foreground">
-              Oluşturulan testler
-            </p>
+            <p className="text-xs text-muted-foreground">Oluşturulan testler</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Test Soruları</CardTitle>
@@ -253,12 +254,9 @@ export default function Tests() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalQuestions}</div>
-            <p className="text-xs text-muted-foreground">
-              Toplam soru sayısı
-            </p>
+            <p className="text-xs text-muted-foreground">Toplam soru sayısı</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Ortalama</CardTitle>
@@ -266,12 +264,9 @@ export default function Tests() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{averageQuestionsPerTest}</div>
-            <p className="text-xs text-muted-foreground">
-              Soru/test
-            </p>
+            <p className="text-xs text-muted-foreground">Soru/test</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Büyük Testler</CardTitle>
@@ -279,14 +274,12 @@ export default function Tests() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{testsBySize.large}</div>
-            <p className="text-xs text-muted-foreground">
-              25+ soru içeren
-            </p>
+            <p className="text-xs text-muted-foreground">25+ soru içeren</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Search and Filter */}
+      {/* Arama ve Filtreleme */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -297,21 +290,22 @@ export default function Tests() {
             className="pl-9"
           />
         </div>
-        
         <div className="flex gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
-                {filterBy === 'all' ? 'Tümü' : 
-                 filterBy === 'small' ? 'Küçük (≤10)' :
-                 filterBy === 'medium' ? 'Orta (11-25)' : 'Büyük (25+)'}
+                {filterBy === 'all'
+                  ? 'Tümü'
+                  : filterBy === 'small'
+                  ? 'Küçük (≤10)'
+                  : filterBy === 'medium'
+                  ? 'Orta (11-25)'
+                  : 'Büyük (25+)'}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setFilterBy('all')}>
-                Tüm Testler
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setFilterBy('all')}>Tüm Testler</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setFilterBy('small')}>
                 Küçük Testler (≤10 soru)
               </DropdownMenuItem>
@@ -323,7 +317,6 @@ export default function Tests() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="flex items-center gap-2">
@@ -331,31 +324,21 @@ export default function Tests() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={() => setSortBy('date')}>
-                Tarihe Göre
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy('name')}>
-                İsme Göre
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortBy('questions')}>
-                Soru Sayısına Göre
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('date')}>Tarihe Göre</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('name')}> İsme Göre</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortBy('questions')}>Soru Sayısına Göre</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
 
-      {/* Tests Grid */}
+      {/* Test Listesi */}
       {filteredAndSortedTests.length === 0 ? (
         searchTerm ? (
           <div className="text-center py-12">
             <Search className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">
-              Arama sonucu bulunamadı
-            </h3>
-            <p className="mt-2 text-gray-600">
-              "{searchTerm}" için test bulunamadı.
-            </p>
+            <h3 className="mt-4 text-lg font-medium text-gray-900">Arama sonucu bulunamadı</h3>
+            <p className="mt-2 text-gray-600">"{searchTerm}" için test bulunamadı.</p>
           </div>
         ) : (
           <EmptyTestsState onCreateTest={() => setIsTestCreateOpen(true)} />
@@ -364,10 +347,12 @@ export default function Tests() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedTests.map((test) => {
             const testSize = getTestSize(test.questionIds.length);
-            const sizeColor = testSize === 'small' ? 'bg-green-100 text-green-800' :
-                             testSize === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                             'bg-red-100 text-red-800';
-            
+            const sizeColor =
+              testSize === 'small'
+                ? 'bg-green-100 text-green-800'
+                : testSize === 'medium'
+                ? 'bg-yellow-100 text-yellow-800'
+                : 'bg-red-100 text-red-800';
             return (
               <Card key={test.id} className="hover:shadow-lg transition-all duration-200 group">
                 <CardHeader className="pb-3">
@@ -375,19 +360,16 @@ export default function Tests() {
                     <div className="flex-1 min-w-0">
                       <CardTitle className="text-lg truncate">{test.title}</CardTitle>
                       <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="secondary">
-                          {test.questionIds.length} soru
-                        </Badge>
+                        <Badge variant="secondary">{test.questionIds.length} soru</Badge>
                         <Badge className={sizeColor}>
-                          {testSize === 'small' ? 'Küçük' :
-                           testSize === 'medium' ? 'Orta' : 'Büyük'}
+                          {testSize === 'small' ? 'Küçük' : testSize === 'medium' ? 'Orta' : 'Büyük'}
                         </Badge>
                       </div>
                     </div>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           className="opacity-0 group-hover:opacity-100 transition-opacity"
                         >
@@ -396,31 +378,28 @@ export default function Tests() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuItem onClick={() => handleViewTest(test)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Görüntüle
+                          <Eye className="h-4 w-4 mr-2" /> Görüntüle
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleEditTest(test)}>
-                          <Edit2 className="h-4 w-4 mr-2" />
-                          Düzenle
+                          <Edit2 className="h-4 w-4 mr-2" /> Düzenle
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleSimulateTest(test)}>
-                          <Clock className="h-4 w-4 mr-2" />
-                          Testi Çöz
+                          <Clock className="h-4 w-4 mr-2" /> Testi Çöz
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDuplicateTest(test)}>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Kopyala
+                          <Copy className="h-4 w-4 mr-2" /> Kopyala
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handlePreviewTest(test)}>
+                          <Printer className="h-4 w-4 mr-2" /> PDF Önizleme
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDownloadTest(test)}>
-                          <Download className="h-4 w-4 mr-2" />
-                          PDF İndir
+                          <Download className="h-4 w-4 mr-2" /> PDF İndir
                         </DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => handleDeleteTest(test)}
                           className="text-red-600"
                         >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Sil
+                          <Trash2 className="h-4 w-4 mr-2" /> Sil
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -430,8 +409,7 @@ export default function Tests() {
                   <p className="text-gray-600 text-sm mb-4 line-clamp-2">
                     {test.description || 'Açıklama yok'}
                   </p>
-                  
-                  {/* Test Settings */}
+                  {/* Test Ayarları */}
                   <div className="flex flex-wrap gap-1 mb-4">
                     {test.settings.showAnswers && (
                       <Badge variant="outline" className="text-xs">
@@ -454,7 +432,6 @@ export default function Tests() {
                       </Badge>
                     )}
                   </div>
-
                   {/* Action Buttons */}
                   <div className="flex items-center justify-between">
                     <div className="text-xs text-gray-500 flex items-center gap-1">
@@ -462,18 +439,10 @@ export default function Tests() {
                       {new Date(test.createdAt).toLocaleDateString('tr-TR')}
                     </div>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleViewTest(test)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleViewTest(test)}>
                         <Eye className="h-3 w-3" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleDownloadTest(test)}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => handleDownloadTest(test)}>
                         <Download className="h-3 w-3" />
                       </Button>
                     </div>
@@ -485,7 +454,7 @@ export default function Tests() {
         </div>
       )}
 
-      {/* Dialogs */}
+      {/* Dialoglar */}
       <TestCreateDialog
         open={isTestCreateOpen}
         onOpenChange={setIsTestCreateOpen}
@@ -493,7 +462,6 @@ export default function Tests() {
         questions={questions}
         categories={categories}
       />
-
       <TestEditDialog
         open={isTestEditOpen}
         onOpenChange={setIsTestEditOpen}
@@ -502,7 +470,6 @@ export default function Tests() {
         questions={questions}
         categories={categories}
       />
-
       <TestViewDialog
         test={selectedTest}
         questions={questions}
@@ -510,14 +477,13 @@ export default function Tests() {
         open={isTestViewOpen}
         onOpenChange={setIsTestViewOpen}
       />
-
       <AlertDialog open={!!deleteTest} onOpenChange={() => setDeleteTest(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Testi sil</AlertDialogTitle>
             <AlertDialogDescription>
-              "{deleteTest?.title}" testini silmek istediğinizden emin misiniz? 
-              Bu işlem geri alınamaz.
+              "{deleteTest?.title}" testini silmek istediğinizden emin misiniz? Bu işlem geri
+              alınamaz.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -528,8 +494,6 @@ export default function Tests() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Test Simülasyon/Önizleme Dialog */}
       <TestSimulationDialog
         open={isTestSimOpen}
         onOpenChange={setIsTestSimOpen}
@@ -537,6 +501,41 @@ export default function Tests() {
         questions={questions}
         categories={categories}
       />
+
+      {/* PDF Önizleme Modalı */}
+      {showPDFPreview && (
+        <PDFPreviewDialog
+          htmlContent={previewHTML}
+          onClose={() => setShowPDFPreview(false)}
+        />
+      )}
     </div>
   );
 }
+
+// =============================
+// PDF Önizleme Penceresi
+// =============================
+interface PDFPreviewDialogProps {
+  htmlContent: string;
+  onClose: () => void;
+}
+
+const PDFPreviewDialog: React.FC<PDFPreviewDialogProps> = ({ htmlContent, onClose }) => {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white w-full max-w-4xl max-h-screen overflow-auto p-4 rounded shadow-lg">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">PDF Önizleme</h2>
+          <Button variant="outline" onClick={onClose}>
+            Kapat
+          </Button>
+        </div>
+        <div
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+          style={{ width: '100%' }}
+        />
+      </div>
+    </div>
+  );
+};

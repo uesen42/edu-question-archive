@@ -22,7 +22,8 @@ const Categories = lazy(() => import("@/pages/Categories"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Students = lazy(() => import("@/pages/Students"));
-const Layout = lazy(() => import("@/components/Layout"));
+const Layout = lazy(() => import("@/components/Layout").then(m => ({ default: m.Layout })));
+// const Layout = lazy(() => import("@/components/Layout"));
 
 const queryClient = new QueryClient();
 

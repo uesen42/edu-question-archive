@@ -23,15 +23,12 @@ export class TestService {
       ...testData,
       id: crypto.randomUUID(),
       createdAt: new Date(),
+      createdBy: userId || 'unknown',
+      createdByName: userName || 'Anonim Kullanıcı'
     };
     
     try {
-      // Firebase'e kullanıcı bilgileriyle birlikte ekle
-      const docRef = await addDoc(collection(firebaseDb, 'tests'), {
-        ...test,
-        createdBy: userId || 'unknown',
-        createdByName: userName || 'Anonim Kullanıcı'
-      });
+      const docRef = await addDoc(collection(firebaseDb, 'tests'), test);
       return { ...test, id: docRef.id };
     } catch (error) {
       console.error('Failed to add test:', error);

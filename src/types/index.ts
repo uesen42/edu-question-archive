@@ -32,6 +32,8 @@ export interface Test {
   description: string;
   questionIds: string[];
   createdAt: Date;
+  createdBy?: string; // Kullanıcı ID'si
+  createdByName?: string; // Kullanıcı adı
   settings: {
     showAnswers: boolean;
     randomizeOrder: boolean;

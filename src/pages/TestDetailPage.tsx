@@ -14,7 +14,7 @@ export default function TestDetailPage() {
     questionIds: ['q1', 'q2'],
     settings: {
       showOptions: true,
-      showAnswerKey: true,
+      showAnswers: true,
       randomizeOrder: false,
       timeLimit: 60
     },
@@ -26,27 +26,33 @@ export default function TestDetailPage() {
   const mockQuestions: Question[] = [
     {
       id: 'q1',
+      title: 'Matematik Denklemi',
       content: 'Bu bir örnek matematik sorusudur: $x^2 + 2x + 1 = 0$ denkleminin çözümü nedir?',
+      imageUrls: [],
       options: ['x = -1', 'x = 1', 'x = 0', 'x = 2'],
       correctAnswer: 0,
       categoryId: 'cat1',
       grade: 9,
-      difficultyLevel: 'medium',
+      difficultyLevel: 'orta',
       tags: ['matematik', 'denklem'],
       createdAt: new Date(),
-      createdBy: 'user1'
+      updatedAt: new Date(),
+      createdByName: 'Test Kullanıcısı'
     },
     {
       id: 'q2',
+      title: 'Pi Sayısı',
       content: 'Aşağıdaki ifadelerden hangisi doğrudur? $\\pi \\approx 3.14$',
+      imageUrls: [],
       options: ['Pi sayısı rasyonel bir sayıdır', 'Pi sayısı irrasyonel bir sayıdır', 'Pi = 3', 'Pi < 3'],
       correctAnswer: 1,
       categoryId: 'cat1',
       grade: 9,
-      difficultyLevel: 'easy',
+      difficultyLevel: 'kolay',
       tags: ['matematik', 'pi'],
       createdAt: new Date(),
-      createdBy: 'user1'
+      updatedAt: new Date(),
+      createdByName: 'Test Kullanıcısı'
     }
   ];
 
@@ -55,8 +61,8 @@ export default function TestDetailPage() {
       id: 'cat1',
       name: 'Matematik',
       description: 'Matematik soruları',
-      createdAt: new Date(),
-      createdBy: 'user1'
+      color: '#3b82f6',
+      createdAt: new Date()
     }
   ];
 

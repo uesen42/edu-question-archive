@@ -26,7 +26,8 @@ export default function Layout() {
           <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 sticky top-0 z-40">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <SidebarProvider.SidebarTrigger />
+                {/* SidebarProvider.SidebarTrigger bileşeni SidebarProvider'da yoksa, bu satır hataya sebep olur. */}
+                {/* <SidebarProvider.SidebarTrigger /> */}
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   Soru Bankası Yönetim Sistemi
                 </h1>

@@ -486,7 +486,17 @@ export async function exportTestToPDF(
     
     // DOM elementi oluştur
     const element = generateTestPDFContent(test, questions, categories, settings);
-
+  // Tarayıcı konsoluna yapıştır
+(() => {
+  const test = window.store.getState().tests[0];
+  const questions = window.store.getState().questions;
+  const categories = window.store.getState().categories;
+  if (test && questions.length && categories.length) {
+    exportTestToPDF(test, questions, categories);
+  } else {
+    console.error("Gerekli veriler eksik");
+  }
+})();
     // Görünmez ama render edilebilir şekilde ekle
     element.style.position = 'absolute';
     element.style.left = '-9999px';

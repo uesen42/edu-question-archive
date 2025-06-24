@@ -1,5 +1,5 @@
 
-import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut } from 'lucide-react';
+import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut, GraduationCap } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,12 @@ const items = [
     title: 'Testler',
     url: '/tests',
     icon: FileText,
+    roles: ['admin', 'user']
+  },
+  {
+    title: 'Sınavlar',
+    url: '/exams',
+    icon: GraduationCap,
     roles: ['admin', 'user']
   },
   {

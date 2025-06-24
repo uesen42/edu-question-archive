@@ -1,4 +1,4 @@
-//src/App.tsx
+
 import { Suspense, lazy, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -18,12 +18,12 @@ import { useState } from 'react';
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Questions = lazy(() => import("@/pages/Questions"));
 const Tests = lazy(() => import("@/pages/Tests"));
+const Exams = lazy(() => import("@/pages/Exams"));
 const Categories = lazy(() => import("@/pages/Categories"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Students = lazy(() => import("@/pages/Students"));
-const Layout = lazy(() => import("@/components/Layout").then(m => ({ default: m.Layout })));
-// const Layout = lazy(() => import("@/components/Layout"));
+const Layout = lazy(() => import("@/components/Layout"));
 
 const queryClient = new QueryClient();
 
@@ -60,6 +60,7 @@ const App = () => {
                         <Route index element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                         <Route path="questions" element={<ProtectedRoute><Questions /></ProtectedRoute>} />
                         <Route path="tests" element={<ProtectedRoute><Tests /></ProtectedRoute>} />
+                        <Route path="exams" element={<ProtectedRoute><Exams /></ProtectedRoute>} />
                         <Route path="categories" element={<ProtectedRoute adminOnly><Categories /></ProtectedRoute>} />
                         <Route path="analytics" element={<ProtectedRoute adminOnly><Analytics /></ProtectedRoute>} />
                         <Route path="students" element={<ProtectedRoute adminOnly><Students /></ProtectedRoute>} />

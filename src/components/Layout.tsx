@@ -6,7 +6,7 @@ import { AppSidebar } from '@/components/Sidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuestionStore } from '@/store/questionStore';
 
-export function Layout() {
+export default function Layout() {
   const initDatabase = useQuestionStore(state => state.initDatabase);
 
   useEffect(() => {

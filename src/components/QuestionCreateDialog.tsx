@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Question, Category } from '@/types';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -7,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Image, MoveUp, MoveDown } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { LaTeXEditor } from './LaTeXEditor';
 
@@ -16,6 +15,13 @@ interface QuestionCreateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (question: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>) => void;
+}
+
+interface ImageData {
+  url: string;
+  id: string;
+  width?: number;
+  height?: number;
 }
 
 export function QuestionCreateDialog({ 
@@ -32,7 +38,7 @@ export function QuestionCreateDialog({
     grade: 1,
     tags: [] as string[],
     newTag: '',
-    imageUrls: [] as string[],
+    images: [] as ImageData[],
     options: [] as string[],
     newOption: ''
   });
@@ -46,15 +52,63 @@ export function QuestionCreateDialog({
       acceptedFiles.forEach((file) => {
         const reader = new FileReader();
         reader.onload = () => {
+          const imageId = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           setFormData(prev => ({
             ...prev,
-            imageUrls: [...prev.imageUrls, reader.result as string]
+            images: [...prev.images, {
+              url: reader.result as string,
+              id: imageId,
+              width: 300,
+              height: 200
+            }]
           }));
         };
         reader.readAsDataURL(file);
       });
     }
   });
+
+  const insertImageTag = (imageId: string) => {
+    const imageTag = `[IMG:${imageId}]`;
+    setFormData(prev => ({
+      ...prev,
+      content: prev.content + imageTag
+    }));
+  };
+
+  const handleImageResize = (imageId: string, dimension: 'width' | 'height', value: number) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.map(img => 
+        img.id === imageId 
+          ? { ...img, [dimension]: Math.max(50, Math.min(800, value)) }
+          : img
+      )
+    }));
+  };
+
+  const handleRemoveImage = (imageId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter(img => img.id !== imageId),
+      content: prev.content.replace(new RegExp(`\\[IMG:${imageId}\\]`, 'g'), '')
+    }));
+  };
+
+  const moveImage = (imageId: string, direction: 'up' | 'down') => {
+    setFormData(prev => {
+      const currentIndex = prev.images.findIndex(img => img.id === imageId);
+      if (currentIndex === -1) return prev;
+      
+      const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (newIndex < 0 || newIndex >= prev.images.length) return prev;
+      
+      const newImages = [...prev.images];
+      [newImages[currentIndex], newImages[newIndex]] = [newImages[newIndex], newImages[currentIndex]];
+      
+      return { ...prev, images: newImages };
+    });
+  };
 
   const handleAddTag = () => {
     if (formData.newTag.trim() && !formData.tags.includes(formData.newTag.trim())) {
@@ -70,13 +124,6 @@ export function QuestionCreateDialog({
     setFormData(prev => ({
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
-    }));
-  };
-
-  const handleRemoveImage = (indexToRemove: number) => {
-    setFormData(prev => ({
-      ...prev,
-      imageUrls: prev.imageUrls.filter((_, index) => index !== indexToRemove)
     }));
   };
 
@@ -99,14 +146,18 @@ export function QuestionCreateDialog({
 
   const handleSave = () => {
     if (formData.title.trim() && formData.content.trim() && formData.categoryId) {
+      // Convert images array to imageUrls for compatibility
+      const processedContent = formData.content;
+      let imageUrls = formData.images.map(img => img.url);
+      
       const questionData = {
         title: formData.title.trim(),
-        content: formData.content.trim(),
+        content: processedContent,
         categoryId: formData.categoryId,
         difficultyLevel: formData.difficultyLevel,
         grade: formData.grade,
         tags: formData.tags,
-        imageUrls: formData.imageUrls,
+        imageUrls: imageUrls,
         options: formData.options.length > 0 ? formData.options : undefined,
         isFavorite: false,
         viewCount: 0
@@ -122,7 +173,7 @@ export function QuestionCreateDialog({
         grade: 1,
         tags: [],
         newTag: '',
-        imageUrls: [],
+        images: [],
         options: [],
         newOption: ''
       });
@@ -153,11 +204,135 @@ export function QuestionCreateDialog({
           {/* İçerik - LaTeX Editor */}
           <div>
             <Label>Soru İçeriği *</Label>
+            <div className="text-sm text-gray-600 mb-2">
+              Resim eklemek için [IMG:resim_id] etiketini kullanın veya aşağıdaki butonları kullanın.
+            </div>
             <LaTeXEditor
               value={formData.content}
               onChange={(content) => setFormData(prev => ({ ...prev, content }))}
-              placeholder="Soru içeriğini girin... LaTeX formüller için $ veya $$ kullanın"
+              placeholder="Soru içeriğini girin... LaTeX formüller için $ veya $$ kullanın. Resim için [IMG:resim_id] kullanın."
             />
+          </div>
+
+          {/* Resim Yönetimi */}
+          <div>
+            <Label>Soru Görselleri</Label>
+            
+            {/* Yüklenen Resimler Listesi */}
+            {formData.images.length > 0 && (
+              <div className="space-y-4 mb-4 p-4 border rounded-lg bg-gray-50">
+                <h4 className="font-medium">Yüklenen Resimler:</h4>
+                {formData.images.map((image, index) => (
+                  <div key={image.id} className="flex items-start gap-4 p-3 bg-white rounded border">
+                    <img
+                      src={image.url}
+                      alt={`Resim ${index + 1}`}
+                      className="object-cover rounded border"
+                      style={{ 
+                        width: `${image.width || 300}px`, 
+                        height: `${image.height || 200}px`,
+                        maxWidth: '300px',
+                        maxHeight: '200px'
+                      }}
+                    />
+                    <div className="flex-1 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">ID: {image.id}</span>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => moveImage(image.id, 'up')}
+                            disabled={index === 0}
+                          >
+                            <MoveUp className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => moveImage(image.id, 'down')}
+                            disabled={index === formData.images.length - 1}
+                          >
+                            <MoveDown className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleRemoveImage(image.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Genişlik (px)</Label>
+                          <Input
+                            type="number"
+                            value={image.width || 300}
+                            onChange={(e) => handleImageResize(image.id, 'width', parseInt(e.target.value) || 300)}
+                            min={50}
+                            max={800}
+                            className="h-8"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Yükseklik (px)</Label>
+                          <Input
+                            type="number"
+                            value={image.height || 200}
+                            onChange={(e) => handleImageResize(image.id, 'height', parseInt(e.target.value) || 200)}
+                            min={50}
+                            max={600}
+                            className="h-8"
+                          />
+                        </div>
+                      </div>
+                      
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => insertImageTag(image.id)}
+                        className="w-full flex items-center gap-2"
+                      >
+                        <Image className="h-3 w-3" />
+                        İçeriğe Ekle: [IMG:{image.id}]
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Resim Yükleme Alanı */}
+            <div
+              {...getRootProps()}
+              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                isDragActive 
+                  ? 'border-blue-500 bg-blue-50' 
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+            >
+              <input {...getInputProps()} />
+              <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+              {isDragActive ? (
+                <p className="text-blue-600">Resimleri buraya bırakın...</p>
+              ) : (
+                <div>
+                  <p className="text-gray-600 mb-1">
+                    Resimleri sürükleyip bırakın veya seçmek için tıklayın
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    PNG, JPG, GIF, WEBP formatları desteklenir (Maksimum 5 resim)
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Seçenekler */}
@@ -206,58 +381,6 @@ export function QuestionCreateDialog({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Resim Yükleme */}
-          <div>
-            <Label>Soru Görselleri</Label>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                isDragActive 
-                  ? 'border-blue-500 bg-blue-50' 
-                  : 'border-gray-300 hover:border-gray-400'
-              }`}
-            >
-              <input {...getInputProps()} />
-              <Upload className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-              {isDragActive ? (
-                <p className="text-blue-600">Resimleri buraya bırakın...</p>
-              ) : (
-                <div>
-                  <p className="text-gray-600 mb-1">
-                    Resimleri sürükleyip bırakın veya seçmek için tıklayın
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    PNG, JPG, GIF, WEBP formatları desteklenir (Maksimum 5 resim)
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Yüklenen Resimler */}
-            {formData.imageUrls.length > 0 && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                {formData.imageUrls.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={url}
-                      alt={`Yüklenen resim ${index + 1}`}
-                      className="w-full h-24 object-cover rounded border"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleRemoveImage(index)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Kategori, Zorluk, Sınıf */}

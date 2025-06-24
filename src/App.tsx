@@ -53,89 +53,57 @@ const App = () => {
               <Sonner />
               <BrowserRouter>
                 <ErrorBoundary>
-                  <Routes>
-                    <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                      <Route 
-                        index 
-                        element={
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoadingSkeleton />}>
-                              <Dashboard />
-                            </Suspense>
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route 
-                        path="questions" 
-                        element={
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoadingSkeleton />}>
-                              <Questions />
-                            </Suspense>
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route 
-                        path="tests" 
-                        element={
-                          <ErrorBoundary>
-                            <Suspense fallback={<PageLoadingSkeleton />}>
-                              <Tests />
-                            </Suspense>
-                          </ErrorBoundary>
-                        } 
-                      />
-                      <Route 
-                        path="categories" 
-                        element={
-                          <ProtectedRoute adminOnly>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoadingSkeleton />}>
-                                <Categories />
-                              </Suspense>
-                            </ErrorBoundary>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="analytics" 
-                        element={
-                          <ProtectedRoute adminOnly>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoadingSkeleton />}>
-                                <Analytics />
-                              </Suspense>
-                            </ErrorBoundary>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="students" 
-                        element={
-                          <ProtectedRoute adminOnly>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoadingSkeleton />}>
-                                <Students />
-                              </Suspense>
-                            </ErrorBoundary>
-                          </ProtectedRoute>
-                        } 
-                      />
-                      <Route 
-                        path="settings" 
-                        element={
-                          <ProtectedRoute adminOnly>
-                            <ErrorBoundary>
-                              <Suspense fallback={<PageLoadingSkeleton />}>
-                                <Settings />
-                              </Suspense>
-                            </ErrorBoundary>
-                          </ProtectedRoute>
-                        } 
-                      />
-                    </Route>
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <Suspense fallback={<PageLoadingSkeleton />}>
+                    <Routes>
+                      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                        <Route 
+                          index 
+                          element={<Dashboard />}
+                        />
+                        <Route 
+                          path="questions" 
+                          element={<Questions />}
+                        />
+                        <Route 
+                          path="tests" 
+                          element={<Tests />}
+                        />
+                        <Route 
+                          path="categories" 
+                          element={
+                            <ProtectedRoute adminOnly>
+                              <Categories />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route 
+                          path="analytics" 
+                          element={
+                            <ProtectedRoute adminOnly>
+                              <Analytics />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route 
+                          path="students" 
+                          element={
+                            <ProtectedRoute adminOnly>
+                              <Students />
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route 
+                          path="settings" 
+                          element={
+                            <ProtectedRoute adminOnly>
+                              <Settings />
+                            </ProtectedRoute>
+                          }
+                        />
+                      </Route>
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
                 </ErrorBoundary>
               </BrowserRouter>
               <PerformanceMonitor isVisible={showPerformanceMonitor} />

@@ -447,6 +447,7 @@ export async function exportTestToPDF(
     
     // 1. DOM elementini oluştur
     const element = generateTestPDFContent(test, questions, categories, settings);
+    console.log("PDF İçeriği:", generatePDFPreviewContent(test, questions, categories, settings));
     
     // 2. DOM'a ekle (görünmez ama render edilebilir şekilde)
     element.style.opacity = '0';

@@ -13,6 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarHeader,
 } from '@/components/ui/sidebar';
 
 const items = [
@@ -76,6 +77,12 @@ export function AppSidebar() {
 
   return (
     <Sidebar className="border-r border-border/40">
+      <SidebarHeader className="p-4 border-b">
+        <h2 className="text-lg font-semibold text-sidebar-foreground truncate">
+          Soru Bankası
+        </h2>
+      </SidebarHeader>
+      
       <SidebarContent className="bg-sidebar">
         <SidebarGroup>
           <SidebarGroupLabel className="text-lg font-semibold text-sidebar-foreground px-4 py-2">
@@ -91,8 +98,8 @@ export function AppSidebar() {
                     className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
                   >
                     <Link to={item.url} className="flex items-center gap-3 px-4 py-2">
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -105,7 +112,7 @@ export function AppSidebar() {
       <SidebarFooter className="p-4 border-t">
         <div className="space-y-2">
           <div className="text-sm text-sidebar-foreground">
-            <p className="font-medium">{userProfile?.displayName}</p>
+            <p className="font-medium truncate">{userProfile?.displayName}</p>
             <p className="text-xs text-sidebar-foreground/70">
               {isAdmin ? 'Admin' : 'Kullanıcı'}
             </p>
@@ -114,10 +121,10 @@ export function AppSidebar() {
             variant="outline" 
             size="sm" 
             onClick={logout}
-            className="w-full flex items-center gap-2"
+            className="w-full flex items-center gap-2 text-sm"
           >
-            <LogOut className="h-4 w-4" />
-            Çıkış Yap
+            <LogOut className="h-4 w-4 flex-shrink-0" />
+            <span className="truncate">Çıkış Yap</span>
           </Button>
         </div>
       </SidebarFooter>

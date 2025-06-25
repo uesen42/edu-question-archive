@@ -1,7 +1,8 @@
+
 // src/components/Layout.tsx
 import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/Sidebar';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useQuestionStore } from '@/store/questionStore';
@@ -26,8 +27,7 @@ export default function Layout() {
           <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-4 sticky top-0 z-40">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {/* SidebarProvider.SidebarTrigger bileşeni SidebarProvider'da yoksa, bu satır hataya sebep olur. */}
-                {/* <SidebarProvider.SidebarTrigger /> */}
+                <SidebarTrigger className="md:hidden" />
                 <h1 className="text-xl md:text-2xl font-bold text-foreground">
                   Soru Bankası Yönetim Sistemi
                 </h1>

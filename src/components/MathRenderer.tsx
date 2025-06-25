@@ -1,4 +1,5 @@
 
+import React from 'react';
 import 'katex/dist/katex.min.css';
 import { InlineMath, BlockMath } from 'react-katex';
 
@@ -8,10 +9,10 @@ interface MathRendererProps {
 }
 
 export function MathRenderer({ content, className = '' }: MathRendererProps) {
-  const renderWithMath = (text: string): (string | JSX.Element)[] => {
+  const renderWithMath = (text: string): (string | React.ReactElement)[] => {
     // First handle block math $$...$$ 
     const blockMathRegex = /\$\$([^$]+)\$\$/g;
-    let parts: (string | JSX.Element)[] = [text];
+    let parts: (string | React.ReactElement)[] = [text];
     
     // Handle block math first
     parts = parts.flatMap((part, partIndex) => {

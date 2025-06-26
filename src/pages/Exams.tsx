@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -81,6 +80,30 @@ export default function Exams() {
           variant: "destructive",
         });
       }
+    }
+  };
+
+  const handleDownloadExam = async (exam: Exam) => {
+    try {
+      const { MobileExamPdfButton } = await import('@/components/MobileExamPdfButton');
+      const examQuestions = questions.filter(q => exam.questionIds.includes(q.id));
+      
+      // Geçici bir element oluşturup tıklama simülasyonu yap
+      const tempButton = document.createElement('div');
+      document.body.appendChild(tempButton);
+      
+      const { exportMobileExamToPDF, isMobileDevice } = await import('@/utils/mobilePdfExport');
+      const { exportExamToPDF } = await import('@/utils/examPdfExport');
+      
+      if (isMobileDevice()) {
+        await exportMobileExamToPDF(exam, examQuestions, categories);
+      } else {
+        await exportExamToPDF(exam, examQuestions, categories);
+      }
+      
+      document.body.removeChild(tempButton);
+    } catch (error) {
+      console.error('Sınav PDF indirme hatası:', error);
     }
   };
 
@@ -177,10 +200,7 @@ export default function Exams() {
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={() => {
-                        // PDF indirme işlemi burada yapılacak
-                        console.log('PDF indir:', exam);
-                      }}
+                      onClick={() => handleDownloadExam(exam)}
                     >
                       <Download className="h-3 w-3 mr-1" />
                       İndir

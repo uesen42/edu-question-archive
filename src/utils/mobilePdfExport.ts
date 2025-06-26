@@ -1,4 +1,3 @@
-
 import { Test, Question, Category } from '@/types';
 import { Exam } from '@/types/exam';
 import { parseMathSymbols, sanitizeTurkishChars, PDFExportSettings, defaultPDFSettings } from './modernPdfExport';
@@ -56,8 +55,8 @@ function generateMobileTestHTML(
       }
       body { 
         font-family: Arial, sans-serif; 
-        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
-        line-height: 1.4; 
+        font-size: ${settings.largerFonts ? '13pt' : '11pt'}; 
+        line-height: 1.5; 
         color: #000; 
         background: white; 
       }
@@ -78,50 +77,53 @@ function generateMobileTestHTML(
       }
       .meta-info { 
         margin-bottom: 20px; 
-        padding: 10px; 
+        padding: 15px; 
         background: #f5f5f5; 
         border: 1px solid #ccc; 
-        font-size: ${settings.largerFonts ? '11pt' : '9pt'}; 
+        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
       }
       .question { 
-        margin-bottom: 20px; 
-        padding: 15px; 
-        border: 1px solid #ddd; 
+        margin-bottom: 25px; 
+        padding: 20px; 
+        border: 2px solid #ddd; 
         page-break-inside: avoid; 
         background: #fafafa; 
+        border-radius: 8px;
       }
       .question-number { 
         background: #000; 
         color: white; 
-        padding: 5px 10px; 
-        border-radius: 5px; 
-        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
+        padding: 8px 15px; 
+        border-radius: 8px; 
+        font-size: ${settings.largerFonts ? '14pt' : '12pt'}; 
         font-weight: bold; 
         display: inline-block; 
-        margin-bottom: 10px; 
+        margin-bottom: 15px; 
       }
       .question-content { 
-        margin-bottom: 15px; 
-        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
-        line-height: 1.5; 
+        margin-bottom: 20px; 
+        font-size: ${settings.largerFonts ? '13pt' : '11pt'}; 
+        line-height: 1.6; 
+        word-wrap: break-word;
       }
       .options { 
-        margin-top: 10px; 
+        margin-top: 15px; 
       }
       .option { 
-        margin-bottom: 8px; 
-        padding: 5px 0; 
-        font-size: ${settings.largerFonts ? '11pt' : '9pt'}; 
+        margin-bottom: 12px; 
+        padding: 8px 0; 
+        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
         display: flex; 
         align-items: flex-start; 
-        gap: 10px; 
+        gap: 12px; 
       }
       .option-label { 
         font-weight: bold; 
-        min-width: 25px; 
+        min-width: 30px; 
         background: #e0e0e0; 
-        padding: 3px 8px; 
-        border-radius: 3px; 
+        padding: 5px 10px; 
+        border-radius: 5px; 
+        text-align: center;
       }
       .option-label.correct { 
         background: #4CAF50; 
@@ -129,33 +131,55 @@ function generateMobileTestHTML(
       }
       .option-text { 
         flex: 1; 
-        line-height: 1.4; 
+        line-height: 1.5; 
+        word-wrap: break-word;
       }
       .answer-key { 
-        margin-top: 30px; 
-        padding: 20px; 
-        border: 2px solid #000; 
+        margin-top: 40px; 
+        padding: 25px; 
+        border: 3px solid #000; 
         page-break-before: always; 
+        background: white;
+        border-radius: 8px;
       }
       .answer-key h2 { 
         font-size: ${settings.largerFonts ? '16pt' : '14pt'}; 
         text-align: center; 
-        margin-bottom: 20px; 
-        border-bottom: 1px solid #000; 
-        padding-bottom: 10px; 
+        margin-bottom: 25px; 
+        border-bottom: 2px solid #000; 
+        padding-bottom: 15px; 
       }
       .answer-grid { 
         display: grid; 
-        grid-template-columns: repeat(5, 1fr); 
-        gap: 10px; 
-        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 15px; 
+        font-size: ${settings.largerFonts ? '13pt' : '11pt'}; 
       }
       .answer-cell { 
         text-align: center; 
-        padding: 8px 4px; 
+        padding: 12px 8px; 
         border: 2px solid #000; 
         background: #f0f0f0; 
         font-weight: bold; 
+        border-radius: 5px;
+      }
+      
+      /* Matematik render iyileştirmeleri */
+      .katex { 
+        font-size: 1.2em !important; 
+        line-height: 1.5 !important; 
+      }
+      .katex-display { 
+        margin: 1em 0 !important; 
+        text-align: center !important; 
+      }
+      .math-fallback {
+        background: #f0f8ff;
+        padding: 4px 8px;
+        border-radius: 4px;
+        border: 1px solid #cce7ff;
+        font-family: 'Times New Roman', serif;
+        font-style: italic;
       }
     </style>
   `;

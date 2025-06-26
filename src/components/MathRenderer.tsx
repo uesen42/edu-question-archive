@@ -86,31 +86,38 @@ export function MathRenderer({ content, className = '', isMobile = false }: Math
 
   const renderedContent = renderWithMath(content);
 
+  const mobileStyles = isMobileDevice ? {
+    fontSize: '1.1em',
+    lineHeight: '1.4'
+  } : {};
+
   return (
     <div className={`math-renderer ${className} ${isMobileDevice ? 'mobile-math' : ''}`}>
-      <style jsx>{`
-        .math-renderer.mobile-math .katex {
-          font-size: 1.1em !important;
-          line-height: 1.4 !important;
-        }
-        .math-renderer.mobile-math .katex-display {
-          margin: 0.5em 0 !important;
-          text-align: center !important;
-        }
-        .math-renderer.mobile-math .katex .base {
-          display: inline-block !important;
-          max-width: 100% !important;
-          overflow-x: auto !important;
-        }
-        .math-fallback {
-          font-family: 'Times New Roman', serif;
-          font-style: italic;
-        }
-        .math-error {
-          font-size: 0.85em;
-          color: #dc2626;
-        }
-      `}</style>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+          .math-renderer.mobile-math .katex {
+            font-size: 1.1em !important;
+            line-height: 1.4 !important;
+          }
+          .math-renderer.mobile-math .katex-display {
+            margin: 0.5em 0 !important;
+            text-align: center !important;
+          }
+          .math-renderer.mobile-math .katex .base {
+            display: inline-block !important;
+            max-width: 100% !important;
+            overflow-x: auto !important;
+          }
+          .math-fallback {
+            font-family: 'Times New Roman', serif;
+            font-style: italic;
+          }
+          .math-error {
+            font-size: 0.85em;
+            color: #dc2626;
+          }
+        `
+      }} />
       {renderedContent.map((part, index) => {
         if (typeof part === 'string') {
           return <span key={`text-${index}`}>{part}</span>;

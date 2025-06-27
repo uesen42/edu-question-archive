@@ -124,6 +124,13 @@ function generateAdvancedTestPDFHTML(
         display: flex;
         justify-content: space-between;
       }
+      .page {
+        page-break-after: always;
+        min-height: 100vh;
+      }
+      .page:last-child {
+        page-break-after: auto;
+      }
       .questions-container {
         display: ${settings.questionsPerRow === 2 ? 'grid' : 'block'};
         ${settings.questionsPerRow === 2 ? 'grid-template-columns: 1fr 1fr;' : ''}
@@ -135,7 +142,6 @@ function generateAdvancedTestPDFHTML(
         padding: ${Math.round(settings.questionSpacing * 0.6)}px;
         border: 1px solid #ccc;
         border-radius: 5px;
-        ${settings.pageBreakBetweenQuestions ? 'page-break-before: always;' : ''}
         ${settings.preventOrphanQuestions ? 'page-break-inside: avoid;' : ''}
         background: #fafafa;
       }
@@ -273,62 +279,77 @@ function generateAdvancedTestPDFHTML(
     </div>
   ` : '';
 
-  // Soruları sayfa başına böl
-  let questionsToShow = orderedQuestions;
-  if (settings.questionsPerPage > 0) {
-    questionsToShow = orderedQuestions.slice(0, settings.questionsPerPage);
-  }
-
-  // Sorular
-  const questionsHTML = questionsToShow.map((question, index) => {
-    const category = categories.find(cat => cat.id === question.categoryId);
+  // Soruları sayfalara böl
+  const questionsPerPage = settings.questionsPerPage > 0 ? settings.questionsPerPage : orderedQuestions.length;
+  const totalPages = Math.ceil(orderedQuestions.length / questionsPerPage);
+  
+  let pagesHTML = '';
+  
+  for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+    const startIndex = pageIndex * questionsPerPage;
+    const endIndex = Math.min(startIndex + questionsPerPage, orderedQuestions.length);
+    const pageQuestions = orderedQuestions.slice(startIndex, endIndex);
     
-    const metaItems = [];
-    if (settings.showCategory && category) metaItems.push(category.name);
-    if (settings.showGrade) metaItems.push(`${question.grade}. Sınıf`);
-    if (settings.showDifficulty) metaItems.push(question.difficultyLevel.charAt(0).toUpperCase() + question.difficultyLevel.slice(1));
+    const questionsHTML = pageQuestions.map((question, localIndex) => {
+      const globalIndex = startIndex + localIndex;
+      const category = categories.find(cat => cat.id === question.categoryId);
+      
+      const metaItems = [];
+      if (settings.showCategory && category) metaItems.push(category.name);
+      if (settings.showGrade) metaItems.push(`${question.grade}. Sınıf`);
+      if (settings.showDifficulty) metaItems.push(question.difficultyLevel.charAt(0).toUpperCase() + question.difficultyLevel.slice(1));
 
-    const questionNumber = settings.showQuestionNumbers 
-      ? formatQuestionNumber(index, settings.numberingStyle, settings.numberingFormat)
-      : '';
+      const questionNumber = settings.showQuestionNumbers 
+        ? formatQuestionNumber(globalIndex, settings.numberingStyle, settings.numberingFormat)
+        : '';
 
-    const optionsHTML = settings.showOptions && question.options && question.options.length > 0 
-      ? `<div class="options">
-          ${question.options.map((option, optionIndex) => `
-            <div class="option">
-              <span class="option-label ${settings.showAnswerKey && question.correctAnswer === optionIndex ? 'correct' : ''}">
-                ${String.fromCharCode(65 + optionIndex)})
-              </span>
-              <span class="option-text">${parseMathSymbols(option)}</span>
-            </div>
-          `).join('')}
-        </div>` 
-      : '';
+      const optionsHTML = settings.showOptions && question.options && question.options.length > 0 
+        ? `<div class="options">
+            ${question.options.map((option, optionIndex) => `
+              <div class="option">
+                <span class="option-label ${settings.showAnswerKey && question.correctAnswer === optionIndex ? 'correct' : ''}">
+                  ${String.fromCharCode(65 + optionIndex)})
+                </span>
+                <span class="option-text">${parseMathSymbols(option)}</span>
+              </div>
+            `).join('')}
+          </div>` 
+        : '';
 
-    return `
-      <div class="question">
-        <div class="question-header">
-          ${questionNumber ? `<span class="question-number">${questionNumber}</span>` : ''}
-        </div>
-        ${settings.showMetaInfo && metaItems.length > 0 ? `
-          <div class="question-meta">
-            ${metaItems.join(' | ')}
+      return `
+        <div class="question">
+          <div class="question-header">
+            ${questionNumber ? `<span class="question-number">${questionNumber}</span>` : ''}
           </div>
-        ` : ''}
-        <div class="question-content">
-          ${parseMathSymbols(question.content)}
+          ${settings.showMetaInfo && metaItems.length > 0 ? `
+            <div class="question-meta">
+              ${metaItems.join(' | ')}
+            </div>
+          ` : ''}
+          <div class="question-content">
+            ${parseMathSymbols(question.content)}
+          </div>
+          ${optionsHTML}
         </div>
-        ${optionsHTML}
+      `;
+    }).join('');
+
+    pagesHTML += `
+      <div class="page">
+        ${pageIndex === 0 ? headerHTML + metaInfoHTML : ''}
+        <div class="questions-container">
+          ${questionsHTML}
+        </div>
       </div>
     `;
-  }).join('');
+  }
 
   // Cevap anahtarı
-  const answerKeyHTML = settings.showAnswerKey && questionsToShow.some(q => typeof q.correctAnswer === 'number') ? `
+  const answerKeyHTML = settings.showAnswerKey && orderedQuestions.some(q => typeof q.correctAnswer === 'number') ? `
     <div class="answer-key">
       <h2>CEVAP ANAHTARI</h2>
       <div class="answer-grid">
-        ${questionsToShow.map((question, index) => {
+        ${orderedQuestions.map((question, index) => {
           if (typeof question.correctAnswer === 'number') {
             const questionNumber = settings.showQuestionNumbers 
               ? formatQuestionNumber(index, settings.numberingStyle, settings.numberingFormat)
@@ -351,11 +372,7 @@ function generateAdvancedTestPDFHTML(
     </head>
     <body>
       <div class="container">
-        ${headerHTML}
-        ${metaInfoHTML}
-        <div class="questions-container">
-          ${questionsHTML}
-        </div>
+        ${pagesHTML}
         ${answerKeyHTML}
       </div>
     </body>

@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 import { Question, Category, Test, QuestionFilter } from '@/types';
 import { db } from '@/lib/database';
@@ -37,7 +38,7 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
   categories: [],
   tests: [],
   loading: false,
-  filter: {},
+  filter: {}, // Initialize as empty object - all properties are optional now
 
   initDatabase: async () => {
     try {
@@ -47,7 +48,7 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
       const categories = await CategoryService.getAll();
       if (categories.length === 0) {
         for (const catData of DEFAULT_CATEGORIES) {
-          await get().addCategory(catData);
+          await get().addCategory({ ...catData, updatedAt: new Date() });
         }
       }
 
@@ -222,3 +223,4 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
     });
   },
 }));
+

@@ -1,4 +1,5 @@
 
+
 export interface Question {
   id: string;
   title: string;
@@ -25,7 +26,7 @@ export interface Category {
   description?: string;
   color?: string;
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date; // Make optional to fix existing code
 }
 
 export interface Test {
@@ -34,7 +35,7 @@ export interface Test {
   description?: string;
   questionIds: string[];
   createdAt: Date;
-  updatedAt: Date;
+  updatedAt?: Date; // Make optional to fix existing code
   createdBy?: string;
   createdByName?: string;
   settings: {
@@ -46,10 +47,11 @@ export interface Test {
 }
 
 export interface QuestionFilter {
-  searchTerm: string;
-  category: string;
-  difficulty: string;
-  grade: number | null;
-  tags: string[];
-  showFavorites: boolean;
+  search?: string; // Change back to search to match existing code
+  categoryId?: string; // Change back to categoryId to match existing code  
+  difficultyLevel?: 'kolay' | 'orta' | 'zor'; // Change back to difficultyLevel to match existing code
+  grade?: number; // Make optional to match existing code
+  tags?: string[]; // Make optional to match existing code
+  isFavorite?: boolean; // Add back isFavorite to match existing code
 }
+

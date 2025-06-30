@@ -24,7 +24,10 @@ export class FirebaseDatabase {
         ...question, 
         id: docRef.id,
         createdBy: userId || 'unknown',
-        createdByName: userName || 'Anonim Kullanıcı'
+        createdByName: userName || 'Anonim Kullanıcı',
+        isPublic: question.isPublic ?? true, // Varsayılan olarak public
+        viewCount: question.viewCount || 0,
+        isFavorite: question.isFavorite || false
       };
       await setDoc(docRef, questionWithId);
     } catch (error) {
@@ -38,7 +41,15 @@ export class FirebaseDatabase {
       const querySnapshot = await getDocs(collection(db, 'questions'));
       const questions: Question[] = [];
       querySnapshot.forEach((doc) => {
-        questions.push({ id: doc.id, ...doc.data() } as Question);
+        const data = doc.data();
+        questions.push({ 
+          id: doc.id, 
+          ...data,
+          // Eski sorular için varsayılan değerler
+          isPublic: data.isPublic ?? true,
+          viewCount: data.viewCount || 0,
+          isFavorite: data.isFavorite || false
+        } as Question);
       });
       return questions;
     } catch (error) {

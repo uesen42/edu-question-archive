@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -66,9 +65,10 @@ export default function Questions() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    loadQuestions();
+    // Kullanıcı ID'si ile sorular yükle
+    loadQuestions(userProfile?.uid);
     loadCategories();
-  }, [loadQuestions, loadCategories]);
+  }, [loadQuestions, loadCategories, userProfile?.uid]);
 
   const filteredQuestions = getFilteredQuestions();
   
@@ -99,19 +99,25 @@ export default function Questions() {
   const availableTags = [...new Set(questions.flatMap(q => q.tags))];
 
   const handleEdit = (question: Question) => {
+    // Sadece soru sahibi veya admin düzenleyebilir
+    if (!isAdmin && question.createdBy !== userProfile?.uid) {
+      alert('Bu soruyu sadece sahibi düzenleyebilir.');
+      return;
+    }
     setSelectedQuestion(question);
     setEditDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    // Sadece admin soru silebilir
-    if (!isAdmin) {
-      alert('Bu işlem için admin yetkisi gereklidir.');
+    const question = questions.find(q => q.id === id);
+    
+    // Sadece soru sahibi veya admin silebilir
+    if (!isAdmin && question?.createdBy !== userProfile?.uid) {
+      alert('Bu soruyu sadece sahibi silebilir.');
       return;
     }
     
     if (window.confirm('Bu soruyu silmek istediğinizden emin misiniz?')) {
-      const question = questions.find(q => q.id === id);
       if (question && userProfile) {
         await LogService.logActivity(
           userProfile.uid, 
@@ -286,6 +292,11 @@ export default function Questions() {
           <p className="text-gray-600 mt-2">
             Toplam {questions.length} soru • Filtrelenen: {sortedQuestions.length}
             {selectedQuestions.size > 0 && ` • Seçilen: ${selectedQuestions.size}`}
+            {!isAdmin && (
+              <span className="block text-sm text-blue-600 mt-1">
+                Herkese açık sorular ve kendi sorularınız gösteriliyor
+              </span>
+            )}
           </p>
         </div>
         

@@ -5,9 +5,19 @@ import { addDoc, collection } from 'firebase/firestore';
 import { db as firebaseDb } from '@/lib/firebase';
 
 export class QuestionService {
-  static async getAll(): Promise<Question[]> {
+  static async getAll(userId?: string): Promise<Question[]> {
     try {
-      return await db.getQuestions();
+      const allQuestions = await db.getQuestions();
+      
+      // Eğer kullanıcı ID'si verilmişse, sadece public soruları ve kullanıcının kendi sorularını döndür
+      if (userId) {
+        return allQuestions.filter(question => 
+          question.isPublic === true || question.createdBy === userId
+        );
+      }
+      
+      // Admin veya giriş yapmayan kullanıcılar için tüm public soruları döndür
+      return allQuestions.filter(question => question.isPublic !== false);
     } catch (error) {
       console.error('Failed to load questions:', error);
       throw error;
@@ -24,6 +34,7 @@ export class QuestionService {
       id: crypto.randomUUID(),
       createdAt: new Date(),
       updatedAt: new Date(),
+      isPublic: questionData.isPublic ?? true, // Varsayılan olarak public
     };
     
     try {

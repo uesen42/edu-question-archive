@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 import { Question, Category, Test, QuestionFilter } from '@/types';
 import { db } from '@/lib/database';
@@ -16,7 +15,7 @@ interface QuestionStore {
   
   // Actions
   initDatabase: () => Promise<void>;
-  loadQuestions: () => Promise<void>;
+  loadQuestions: (userId?: string) => Promise<void>;
   loadCategories: () => Promise<void>;
   loadTests: () => Promise<void>;
   addQuestion: (question: Omit<Question, 'id' | 'createdAt' | 'updatedAt'>, userId?: string, userName?: string) => Promise<void>;
@@ -62,11 +61,13 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
     }
   },
 
-  loadQuestions: async () => {
+  loadQuestions: async (userId?: string) => {
     set({ loading: true });
     try {
-      const questions = await QuestionService.getAll();
+      const questions = await QuestionService.getAll(userId);
       set({ questions });
+    } catch (error) {
+      console.error('Failed to load questions:', error);
     } finally {
       set({ loading: false });
     }
@@ -96,6 +97,7 @@ export const useQuestionStore = create<QuestionStore>((set, get) => ({
       set(state => ({ questions: [...state.questions, question] }));
     } catch (error) {
       console.error('Failed to add question:', error);
+      throw error;
     }
   },
 

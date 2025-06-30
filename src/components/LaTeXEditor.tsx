@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { MathRenderer } from './MathRenderer';
 
 interface LaTeXEditorProps {
@@ -38,6 +40,7 @@ const commonSymbols = [
 
 export function LaTeXEditor({ value, onChange, placeholder }: LaTeXEditorProps) {
   const [cursorPosition, setCursorPosition] = useState(0);
+  const [isLatexOpen, setIsLatexOpen] = useState(false);
 
   const insertLatex = (latex: string) => {
     const before = value.substring(0, cursorPosition);
@@ -82,30 +85,40 @@ export function LaTeXEditor({ value, onChange, placeholder }: LaTeXEditorProps) 
             </p>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Yaygın Semboller</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {commonSymbols.map((symbol, index) => (
-                  <Button
-                    key={index}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => insertLatex(symbol.latex)}
-                    className="h-auto p-2 flex flex-col items-center"
-                    title={symbol.label}
-                  >
-                    <div className="text-xs mb-1">{symbol.label}</div>
-                    <div className="math-preview">
-                      <MathRenderer content={`$${symbol.display}$`} />
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <Collapsible open={isLatexOpen} onOpenChange={setIsLatexOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" className="w-full flex items-center justify-between">
+                <span>LaTeX Matematik Sembolleri</span>
+                {isLatexOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Card className="mt-2">
+                <CardHeader>
+                  <CardTitle className="text-sm">Yaygın Semboller</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {commonSymbols.map((symbol, index) => (
+                      <Button
+                        key={index}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => insertLatex(symbol.latex)}
+                        className="h-auto p-2 flex flex-col items-center"
+                        title={symbol.label}
+                      >
+                        <div className="text-xs mb-1">{symbol.label}</div>
+                        <div className="math-preview">
+                          <MathRenderer content={`$${symbol.display}$`} />
+                        </div>
+                      </Button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
         </TabsContent>
         
         <TabsContent value="preview">

@@ -45,24 +45,31 @@ function generateMobileTestHTML(
   const styles = `
     <style>
       @page { 
-        size: A4; 
-        margin: 10mm; 
+        size: A4 portrait; 
+        margin: 15mm 10mm; 
+        padding: 0;
       }
       * { 
         box-sizing: border-box; 
         margin: 0; 
         padding: 0; 
       }
-      body { 
+      html, body { 
         font-family: Arial, sans-serif; 
-        font-size: ${settings.largerFonts ? '13pt' : '11pt'}; 
-        line-height: 1.5; 
+        font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
+        line-height: 1.4; 
         color: #000; 
         background: white; 
+        width: 100%;
+        height: auto;
+        overflow-x: hidden;
       }
       .container { 
         width: 100%; 
-        padding: 10px; 
+        max-width: 190mm;
+        padding: 5mm; 
+        margin: 0 auto;
+        page-break-after: auto;
       }
       .header { 
         text-align: center; 
@@ -83,12 +90,14 @@ function generateMobileTestHTML(
         font-size: ${settings.largerFonts ? '12pt' : '10pt'}; 
       }
       .question { 
-        margin-bottom: 25px; 
-        padding: 20px; 
-        border: 2px solid #ddd; 
+        margin-bottom: 20px; 
+        padding: 15px; 
+        border: 1px solid #ddd; 
         page-break-inside: avoid; 
+        page-break-after: auto;
         background: #fafafa; 
-        border-radius: 8px;
+        border-radius: 5px;
+        min-height: auto;
       }
       .question-number { 
         background: #000; 
@@ -278,24 +287,120 @@ function generateMobileExamHTML(
 
   const styles = `
     <style>
-      @page { size: A4; margin: 15mm; }
-      body { font-family: Arial, sans-serif; font-size: ${settings.largerFonts ? '12pt' : '11pt'}; color: #000; background: white; }
-      .container { width: 100%; padding: 10px; }
-      .exam-header { border: 2px solid #000; margin-bottom: 20px; padding: 15px; text-align: center; }
-      .exam-title { font-size: ${settings.largerFonts ? '16pt' : '14pt'}; font-weight: bold; margin-bottom: 10px; }
-      .exam-info { font-size: ${settings.largerFonts ? '11pt' : '10pt'}; margin: 5px 0; }
-      .student-info { margin: 20px 0; padding: 15px; border: 1px solid #000; }
-      .info-row { margin: 10px 0; display: flex; align-items: center; }
-      .info-label { font-weight: bold; min-width: 80px; margin-right: 10px; }
-      .info-line { flex: 1; border-bottom: 1px solid #000; height: 25px; }
-      .question { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; background: #fafafa; }
-      .question-number { background: #000; color: white; padding: 5px 10px; border-radius: 5px; font-weight: bold; display: inline-block; margin-bottom: 10px; }
-      .question-content { margin-bottom: 15px; font-size: ${settings.largerFonts ? '12pt' : '10pt'}; line-height: 1.5; }
-      .options { margin-top: 10px; }
-      .option { margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; font-size: ${settings.largerFonts ? '11pt' : '9pt'}; }
-      .option-label { font-weight: bold; min-width: 25px; background: #e0e0e0; padding: 3px 8px; border-radius: 3px; }
-      .option-label.correct { background: #4CAF50; color: white; }
-      .option-text { flex: 1; }
+      @page { 
+        size: A4 portrait; 
+        margin: 15mm 10mm; 
+        padding: 0;
+      }
+      * { 
+        box-sizing: border-box; 
+        margin: 0; 
+        padding: 0; 
+      }
+      html, body { 
+        font-family: Arial, sans-serif; 
+        font-size: ${settings.largerFonts ? '11pt' : '10pt'}; 
+        color: #000; 
+        background: white; 
+        width: 100%;
+        height: auto;
+        overflow-x: hidden;
+      }
+      .container { 
+        width: 100%; 
+        max-width: 190mm;
+        padding: 5mm; 
+        margin: 0 auto;
+        page-break-after: auto;
+      }
+      .exam-header { 
+        border: 2px solid #000; 
+        margin-bottom: 20px; 
+        padding: 15px; 
+        text-align: center; 
+        page-break-inside: avoid;
+      }
+      .exam-title { 
+        font-size: ${settings.largerFonts ? '14pt' : '12pt'}; 
+        font-weight: bold; 
+        margin-bottom: 10px; 
+      }
+      .exam-info { 
+        font-size: ${settings.largerFonts ? '10pt' : '9pt'}; 
+        margin: 5px 0; 
+      }
+      .student-info { 
+        margin: 20px 0; 
+        padding: 15px; 
+        border: 1px solid #000; 
+        page-break-inside: avoid;
+      }
+      .info-row { 
+        margin: 10px 0; 
+        display: flex; 
+        align-items: center; 
+      }
+      .info-label { 
+        font-weight: bold; 
+        min-width: 80px; 
+        margin-right: 10px; 
+      }
+      .info-line { 
+        flex: 1; 
+        border-bottom: 1px solid #000; 
+        height: 25px; 
+      }
+      .question { 
+        margin-bottom: 15px; 
+        padding: 12px; 
+        border: 1px solid #ddd; 
+        background: #fafafa; 
+        page-break-inside: avoid;
+        page-break-after: auto;
+        border-radius: 3px;
+      }
+      .question-number { 
+        background: #000; 
+        color: white; 
+        padding: 5px 10px; 
+        border-radius: 5px; 
+        font-weight: bold; 
+        display: inline-block; 
+        margin-bottom: 10px; 
+        font-size: ${settings.largerFonts ? '12pt' : '11pt'};
+      }
+      .question-content { 
+        margin-bottom: 15px; 
+        font-size: ${settings.largerFonts ? '11pt' : '10pt'}; 
+        line-height: 1.4; 
+        word-wrap: break-word;
+      }
+      .options { 
+        margin-top: 10px; 
+      }
+      .option { 
+        margin-bottom: 8px; 
+        display: flex; 
+        align-items: flex-start; 
+        gap: 10px; 
+        font-size: ${settings.largerFonts ? '10pt' : '9pt'}; 
+      }
+      .option-label { 
+        font-weight: bold; 
+        min-width: 25px; 
+        background: #e0e0e0; 
+        padding: 3px 8px; 
+        border-radius: 3px; 
+      }
+      .option-label.correct { 
+        background: #4CAF50; 
+        color: white; 
+      }
+      .option-text { 
+        flex: 1; 
+        word-wrap: break-word;
+        line-height: 1.3;
+      }
     </style>
   `;
 

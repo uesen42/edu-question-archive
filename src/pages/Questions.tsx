@@ -19,6 +19,7 @@ import { AdvancedSearch } from '@/components/AdvancedSearch';
 import { QuestionViewDialog } from '@/components/QuestionViewDialog';
 import { QuestionEditDialog } from '@/components/QuestionEditDialog';
 import { QuestionCreateDialog } from '@/components/QuestionCreateDialog';
+import { AdvancedImageExportButton } from '@/components/AdvancedImageExportButton';
 import { Question } from '@/types';
 import { exportAllQuestionsToImages, exportQuestionToImage } from '@/utils/questionImageExport';
 import { 
@@ -313,6 +314,10 @@ export default function Questions() {
                   Resim Olarak İndir
                 </Button>
               )}
+              <AdvancedImageExportButton 
+                questions={sortedQuestions} 
+                categories={categories} 
+              />
               <Button 
                 variant="outline"
                 onClick={handleToggleSelectionMode}

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,6 +11,7 @@ import { TestCreateDialog } from '@/components/TestCreateDialog';
 import { TestEditDialog } from '@/components/TestEditDialog';
 import { TestViewDialog } from '@/components/TestViewDialog';
 import { PDFPreviewDialog } from '@/components/PDFPreviewDialog';
+import { AdvancedImageExportButton } from '@/components/AdvancedImageExportButton';
 import { toast } from '@/components/ui/use-toast';
 
 export default function Tests() {
@@ -44,7 +44,7 @@ export default function Tests() {
   // Kullanıcı bazlı test filtreleme
   const filteredTests = tests.filter(test => {
     const matchesSearch = test.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         test.description.toLowerCase().includes(searchTerm.toLowerCase());
+                         test.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
     // Admin tüm testleri görebilir
     if (userProfile?.email === 'admin@example.com') {
@@ -215,6 +215,11 @@ export default function Tests() {
                       <Eye className="h-3 w-3 mr-1" />
                       Görüntüle
                     </Button>
+                    <AdvancedImageExportButton 
+                      test={test} 
+                      questions={questions} 
+                      categories={categories} 
+                    />
                     <Button 
                       variant="outline" 
                       size="sm"

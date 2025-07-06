@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Test, Question, Category } from '@/types';
 import { MathRenderer } from '@/components/MathRenderer';
+import { AdvancedImageExportButton } from '@/components/AdvancedImageExportButton';
 import { Calendar, Clock, Shuffle, Eye } from 'lucide-react';
 
 interface TestViewDialogProps {
@@ -33,7 +34,14 @@ export function TestViewDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl">{test.title}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl">{test.title}</DialogTitle>
+            <AdvancedImageExportButton 
+              test={test} 
+              questions={questions} 
+              categories={categories} 
+            />
+          </div>
         </DialogHeader>
         
         <div className="space-y-6">

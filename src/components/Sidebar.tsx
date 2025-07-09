@@ -1,5 +1,5 @@
 
-import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut, GraduationCap, Calculator, Target, Wrench } from 'lucide-react';
+import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut, GraduationCap, Calculator, Target, Wrench, ChevronRight } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -12,9 +12,13 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarFooter,
   SidebarHeader,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 const items = [
   {
@@ -27,7 +31,13 @@ const items = [
     title: 'Matematik Konuları',
     url: '/math-topics',
     icon: Calculator,
-    roles: ['admin', 'user']
+    roles: ['admin', 'user'],
+    subItems: [
+      { title: '9. Sınıf', url: '/math-topics/9' },
+      { title: '10. Sınıf', url: '/math-topics/10' },
+      { title: '11. Sınıf', url: '/math-topics/11' },
+      { title: '12. Sınıf', url: '/math-topics/12' }
+    ]
   },
   {
     title: 'Soru Çözme',
@@ -99,6 +109,14 @@ export function AppSidebar() {
     item.roles.includes(userProfile?.role || 'user')
   );
 
+  const isTopicActive = (item: any) => {
+    if (item.subItems) {
+      return location.pathname.startsWith(item.url) || 
+             item.subItems.some((subItem: any) => location.pathname.startsWith(subItem.url));
+    }
+    return location.pathname === item.url;
+  };
+
   return (
     <Sidebar className="border-r border-border/40">
       <SidebarHeader className="p-4 border-b">
@@ -116,16 +134,49 @@ export function AppSidebar() {
             <SidebarMenu>
               {filteredItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location.pathname === item.url}
-                    className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
-                  >
-                    <Link to={item.url} className="flex items-center gap-3 px-4 py-2">
-                      <item.icon className="h-5 w-5 flex-shrink-0" />
-                      <span className="truncate">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
+                  {item.subItems ? (
+                    <Collapsible defaultOpen={isTopicActive(item)}>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton 
+                          isActive={isTopicActive(item)}
+                          className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
+                        >
+                          <div className="flex items-center gap-3 px-4 py-2 w-full">
+                            <item.icon className="h-5 w-5 flex-shrink-0" />
+                            <span className="truncate flex-1 text-left">{item.title}</span>
+                            <ChevronRight className="h-4 w-4 transition-transform data-[state=open]:rotate-90" />
+                          </div>
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {item.subItems.map((subItem: any) => (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton 
+                                asChild
+                                isActive={location.pathname === subItem.url}
+                              >
+                                <Link to={subItem.url} className="pl-8">
+                                  {subItem.title}
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : (
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === item.url}
+                      className="w-full hover:bg-sidebar-accent hover:text-sidebar-accent-foreground data-[active=true]:bg-sidebar-primary data-[active=true]:text-sidebar-primary-foreground"
+                    >
+                      <Link to={item.url} className="flex items-center gap-3 px-4 py-2">
+                        <item.icon className="h-5 w-5 flex-shrink-0" />
+                        <span className="truncate">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

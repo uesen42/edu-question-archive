@@ -21,6 +21,10 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Students = lazy(() => import("@/pages/Students"));
 const MathTopics = lazy(() => import("@/pages/MathTopics"));
+const Grade9Topics = lazy(() => import("@/pages/Grade9Topics"));
+const Grade10Topics = lazy(() => import("@/pages/Grade10Topics"));
+const Grade11Topics = lazy(() => import("@/pages/Grade11Topics"));
+const Grade12Topics = lazy(() => import("@/pages/Grade12Topics"));
 const ProblemSolving = lazy(() => import("@/pages/ProblemSolving"));
 const MathTools = lazy(() => import("@/pages/MathTools"));
 const PracticeTests = lazy(() => import("@/pages/PracticeTests"));
@@ -69,6 +73,10 @@ const App = () => {
                         <Route path="students" element={<ProtectedRoute adminOnly={true}><Students /></ProtectedRoute>} />
                         <Route path="settings" element={<ProtectedRoute adminOnly={true}><Settings /></ProtectedRoute>} />
                         <Route path="math-topics" element={<ProtectedRoute><MathTopics /></ProtectedRoute>} />
+                        <Route path="math-topics/9" element={<ProtectedRoute><Grade9Topics /></ProtectedRoute>} />
+                        <Route path="math-topics/10" element={<ProtectedRoute><Grade10Topics /></ProtectedRoute>} />
+                        <Route path="math-topics/11" element={<ProtectedRoute><Grade11Topics /></ProtectedRoute>} />
+                        <Route path="math-topics/12" element={<ProtectedRoute><Grade12Topics /></ProtectedRoute>} />
                         <Route path="problem-solving" element={<ProtectedRoute><ProblemSolving /></ProtectedRoute>} />
                         <Route path="math-tools" element={<ProtectedRoute><MathTools /></ProtectedRoute>} />
                         <Route path="practice-tests" element={<ProtectedRoute><PracticeTests /></ProtectedRoute>} />

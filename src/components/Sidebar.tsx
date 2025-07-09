@@ -1,5 +1,5 @@
 
-import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut, GraduationCap } from 'lucide-react';
+import { BookOpen, FileText, FolderOpen, BarChart3, Settings, Users, TrendingUp, LogOut, GraduationCap, Calculator, Target, Wrench } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,30 @@ const items = [
     title: 'Anasayfa',
     url: '/',
     icon: BarChart3,
+    roles: ['admin', 'user']
+  },
+  {
+    title: 'Matematik Konuları',
+    url: '/math-topics',
+    icon: Calculator,
+    roles: ['admin', 'user']
+  },
+  {
+    title: 'Soru Çözme',
+    url: '/problem-solving',
+    icon: Target,
+    roles: ['admin', 'user']
+  },
+  {
+    title: 'Matematik Araçları',
+    url: '/math-tools',
+    icon: Wrench,
+    roles: ['admin', 'user']
+  },
+  {
+    title: 'Deneme Sınavları',
+    url: '/practice-tests',
+    icon: GraduationCap,
     roles: ['admin', 'user']
   },
   {

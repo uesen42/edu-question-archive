@@ -20,6 +20,10 @@ const Categories = lazy(() => import("@/pages/Categories"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Students = lazy(() => import("@/pages/Students"));
+const MathTopics = lazy(() => import("@/pages/MathTopics"));
+const ProblemSolving = lazy(() => import("@/pages/ProblemSolving"));
+const MathTools = lazy(() => import("@/pages/MathTools"));
+const PracticeTests = lazy(() => import("@/pages/PracticeTests"));
 const Layout = lazy(() => import("@/components/Layout"));
 
 const queryClient = new QueryClient();
@@ -64,6 +68,10 @@ const App = () => {
                         <Route path="analytics" element={<ProtectedRoute adminOnly={true}><Analytics /></ProtectedRoute>} />
                         <Route path="students" element={<ProtectedRoute adminOnly={true}><Students /></ProtectedRoute>} />
                         <Route path="settings" element={<ProtectedRoute adminOnly={true}><Settings /></ProtectedRoute>} />
+                        <Route path="math-topics" element={<ProtectedRoute><MathTopics /></ProtectedRoute>} />
+                        <Route path="problem-solving" element={<ProtectedRoute><ProblemSolving /></ProtectedRoute>} />
+                        <Route path="math-tools" element={<ProtectedRoute><MathTools /></ProtectedRoute>} />
+                        <Route path="practice-tests" element={<ProtectedRoute><PracticeTests /></ProtectedRoute>} />
                       </Route>
                       <Route path="*" element={<NotFound />} />
                     </Routes>
